@@ -1,0 +1,68 @@
+name: Android debug APK
+on:
+  push:
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore pinned vendored llama.cpp source
+        run: cat third_party/llama-cpp-vendor.tar.gz.part* | tar -xzf - -C third_party
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: android-actions/setup-android@v3
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Install Android SDK
+        run: sdkmanager 'platforms;android-35' 'build-tools;35.0.0' 'ndk;29.0.13113456' 'cmake;3.31.6'
+      - name: Restore private Preview signing key when configured
+        id: signing
+        env:
+          PREVIEW_KEY_BASE64: ${{ secrets.ATLAS_PREVIEW_KEYSTORE_B64 }}
+          PREVIEW_PASSWORD: ${{ secrets.ATLAS_PREVIEW_KEY_PASSWORD }}
+        run: |
+          if [ -z "$PREVIEW_KEY_BASE64" ]; then
+            echo 'ready=false' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          test -n "$PREVIEW_PASSWORD"
+          printf '%s' "$PREVIEW_KEY_BASE64" | base64 --decode > "$RUNNER_TEMP/atlas-preview.keystore"
+          chmod 600 "$RUNNER_TEMP/atlas-preview.keystore"
+          echo "ATLAS_PREVIEW_KEYSTORE=$RUNNER_TEMP/atlas-preview.keystore" >> "$GITHUB_ENV"
+          echo 'ready=true' >> "$GITHUB_OUTPUT"
+      - name: Check index and build APK
+        env:
+          ATLAS_PREVIEW_KEY_PASSWORD: ${{ secrets.ATLAS_PREVIEW_KEY_PASSWORD }}
+        run: |
+          python3 -m unittest discover -s tests -v
+          mkdir -p build/review-tests
+          javac -d build/review-tests app/src/main/java/org/offlineatlas/AnswerReview.java tests/AnswerReviewCases.java app/src/main/java/org/offlineatlas/ComparisonQuery.java tests/ComparisonQueryCases.java
+          java -cp build/review-tests org.offlineatlas.AnswerReviewCases
+          java -cp build/review-tests org.offlineatlas.ComparisonQueryCases
+          javac -d build/review-tests app/src/main/java/org/offlineatlas/WikiText.java app/src/main/java/org/offlineatlas/ResearchEvidence.java tests/ResearchEvidenceCases.java
+          java -cp build/review-tests org.offlineatlas.ResearchEvidenceCases
+          gradle --no-daemon :app:assembleDebug
+          unzip -Z1 app/build/outputs/apk/debug/app-debug.apk | grep -qx 'assets/atlas.db'
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump permissions app/build/outputs/apk/debug/app-debug.apk | tee permissions.txt
+          if grep -q 'android.permission.INTERNET' permissions.txt; then exit 1; fi
+          sha256sum app/build/outputs/apk/debug/app-debug.apk | tee apk.sha256
+      - name: Check update signing certificate
+        if: steps.signing.outputs.ready == 'true'
+        run: |
+          "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --print-certs app/build/outputs/apk/debug/app-debug.apk | tee signing.txt
+          grep -qi '8b426f81af6682aa6c1652930d2dfc47c6bd5d1a5a6133abdddda0daa20102b9' signing.txt
+      - uses: actions/upload-artifact@v4
+        if: steps.signing.outputs.ready == 'true'
+        with:
+          name: offline-atlas-preview-signed-update-apk
+          path: |
+            app/build/outputs/apk/debug/app-debug.apk
+            apk.sha256
+            permissions.txt
+            signing.txt

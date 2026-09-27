@@ -1,0 +1,47 @@
+{
+  "generated_from": "Previously downloaded and SHA-256 verified input files; this checkpoint does not include their bytes or a completed real-data pack.",
+  "sources": [
+    {
+      "name": "English Wikivoyage CirrusSearch content shard",
+      "url": "https://dumps.wikimedia.org/other/cirrus_search_index/20260920/index_name=enwikivoyage_content/enwikivoyage_content-20260920-00000.json.bz2",
+      "sha256": "739122d0bee1ec4a8fc74bca0e0213c49218c686b5283f43b781ad0c966527f0",
+      "snapshot": "2026-09-20",
+      "license": "CC BY-SA 4.0"
+    },
+    {
+      "name": "Simple English Wikipedia CirrusSearch content shard",
+      "url": "https://dumps.wikimedia.org/other/cirrus_search_index/20260920/index_name=simplewiki_content/simplewiki_content-20260920-00000.json.bz2",
+      "sha256": "92bcd2eb260a344e1b10ba7a90a659f2e6891ca3b67ba1599194e5aa95814df1",
+      "snapshot": "2026-09-20",
+      "license": "CC BY-SA 4.0"
+    },
+    {
+      "name": "GeoNames cities15000.zip",
+      "url": "https://download.geonames.org/export/dump/cities15000.zip",
+      "sha256": "9c1f26fa632212ad77e5b82b6d5df3b019a3c119e423efe59d7224a186f9c9f4",
+      "license": "CC BY 4.0",
+      "note": "Mutable URL; checksum is for the previously acquired snapshot."
+    },
+    {
+      "name": "Portugal OpenStreetMap extract",
+      "url": "https://download.geofabrik.de/europe/portugal-latest.osm.pbf",
+      "sha256": "0f8ca9c19930daccfe068e79429246ee785037698b5e2b5c091b222fc6e4a708",
+      "license": "ODbL 1.0",
+      "note": "Mutable URL; checksum is for the previously acquired snapshot."
+    },
+    {
+      "name": "Nigeria OpenStreetMap extract",
+      "url": "https://download.geofabrik.de/africa/nigeria-latest.osm.pbf",
+      "sha256": "7a2b7e0aae8e3d0d64d92a725064154f7cb4d6959e06daaba442c7950fa7ba17",
+      "license": "ODbL 1.0",
+      "note": "Mutable URL; SHA-256 fixes the downloaded input used here."
+    },
+    {
+      "name": "Tokyo OpenStreetMap extract",
+      "url": "https://download.bbbike.org/osm/bbbike/Tokyo/Tokyo.osm.pbf",
+      "sha256": "0fac15590648df3e39760d5337444353aea6ef0babf9b8c16a711d64dca01ea2",
+      "license": "ODbL 1.0",
+      "note": "Mutable URL; SHA-256 fixes the downloaded input used here."
+    }
+  ]
+}
