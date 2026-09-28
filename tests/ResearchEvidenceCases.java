@@ -23,6 +23,9 @@ public final class ResearchEvidenceCases {
             "Why did the Soviet Union collapse?")) throw new AssertionError("Unrelated cause accepted");
         if(ResearchEvidence.sufficientlyCovered("Blue", "The sky can be blue. Blue dye appears bright because it reflects light.",
             "Why is the sky blue?")) throw new AssertionError("Adjacent unrelated cause accepted");
+        if(ResearchEvidence.sufficientlyCovered("List of Blue Sky Studios productions",
+            "Originally produced at Blue Sky for release before cancellation due to closure.",
+            "Why is the sky blue?")) throw new AssertionError("Studio catalogue accepted as sky evidence");
         if(ResearchEvidence.sufficientlyCovered("Tokyo/Shinagawa", "A bus goes from Shinagawa to Kyoto.",
             "How do I get from Tokyo to Kyoto?")) throw new AssertionError("Route without origin accepted");
         String table=WikiText.excerpt("Lead. {| style=\"width:100%\" | navigational junk |} "

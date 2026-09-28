@@ -34,8 +34,13 @@ final class ResearchEvidence {
     static boolean sufficientlyCovered(String title,String passage,String question) {
         ArrayList<String> terms=terms(question);
         if(terms.isEmpty() || passage==null || passage.isEmpty()) return false;
-        if(title.toLowerCase(Locale.ROOT).matches(".*\\((?:film|movie|song|album|band)\\).*")) return false;
         String lowerTitle=title.toLowerCase(Locale.ROOT);
+        // Lists and media catalogue pages can contain every query word and
+        // an unrelated causal sentence (e.g. a studio closing "because" of
+        // a cancellation). They are not evidence for a why/how explanation.
+        if(question.toLowerCase(Locale.ROOT).matches("^(?:why|how|what caused)\\b.*")
+            && (lowerTitle.startsWith("list of ") || lowerTitle.startsWith("lists of "))) return false;
+        if(lowerTitle.matches(".*\\((?:film|movie|song|album|band)\\).*")) return false;
         int subjectWords=0;
         for(String term:terms) if(containsWord(lowerTitle,term)) subjectWords++;
         if(subjectWords==0) return false;
