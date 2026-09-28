@@ -26,6 +26,14 @@ public final class ResearchEvidenceCases {
         if(ResearchEvidence.sufficientlyCovered("List of Blue Sky Studios productions",
             "Originally produced at Blue Sky for release before cancellation due to closure.",
             "Why is the sky blue?")) throw new AssertionError("Studio catalogue accepted as sky evidence");
+        String history="Many factors and events combined and finally they resulted in the dissolution of the Soviet Union. "
+            +"Under glasnost, the government lost control over the media, exposing economic problems.";
+        if(!ResearchEvidence.sufficientlyCovered("History of the Soviet Union (1985–1991)",
+            ResearchEvidence.excerpt(history,"Why did the Soviet Union collapse?",1100),
+            "Why did the Soviet Union collapse?")) throw new AssertionError("Dissolution evidence missed");
+        if(ResearchEvidence.sufficientlyCovered("Soviet Union",
+            "It collapsed in 1991. Lenin brought the Bolsheviks to power in 1917.",
+            "Why did the Soviet Union collapse?")) throw new AssertionError("Unrelated historical cause accepted");
         if(ResearchEvidence.sufficientlyCovered("Tokyo/Shinagawa", "A bus goes from Shinagawa to Kyoto.",
             "How do I get from Tokyo to Kyoto?")) throw new AssertionError("Route without origin accepted");
         String table=WikiText.excerpt("Lead. {| style=\"width:100%\" | navigational junk |} "

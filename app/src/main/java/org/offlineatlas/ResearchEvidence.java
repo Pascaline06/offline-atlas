@@ -11,7 +11,7 @@ import java.util.regex.Pattern;
 /** Finds a question-relevant passage in a local article; never adds facts. */
 final class ResearchEvidence {
     private static final Pattern WORD=Pattern.compile("[\\p{L}\\p{N}]+");
-    private static final Pattern CAUSE=Pattern.compile("\\b(?:because|due to|caused|causes|reasons?|led to|brought|scattering|converts?|produces?|lift)\\b",Pattern.CASE_INSENSITIVE);
+    private static final Pattern CAUSE=Pattern.compile("\\b(?:because|due to|caused|causes|reasons?|led to|leading to|resulted in|results in|brought|scattering|converts?|produces?|lift)\\b",Pattern.CASE_INSENSITIVE);
     private static final Pattern TRANSPORT=Pattern.compile("\\b(?:train|shinkansen|bus|ferry|flight|route|station|travel)\\b",Pattern.CASE_INSENSITIVE);
     private static final String STOP="|the|and|what|why|how|tell|about|compare|best|are|for|from|with|causes|caused|cause|work|works|does|did|was|were|have|has|had|its|this|that|main|way|get|stay|into|between|can|you|me|to|in|of|is|at|";
     private ResearchEvidence() { }
@@ -160,12 +160,25 @@ final class ResearchEvidence {
     }
 
     private static int frequency(String text,String token) {
+        if("collapse".equals(token)) return frequencyExact(text,token)+frequencyExact(text,"dissolution")
+            +frequencyExact(text,"dissolved")+frequencyExact(text,"breakup");
+        return frequencyExact(text,token);
+    }
+
+    private static int frequencyExact(String text,String token) {
         int count=0,from=0,pos;
         while((pos=text.indexOf(token,from))>=0 && count<=8) {count++;from=pos+token.length();}
         return count;
     }
 
     private static boolean containsWord(String text,String word) {
+        if("collapse".equals(word)) return containsWordExact(text,word)
+            || containsWordExact(text,"dissolution") || containsWordExact(text,"dissolved")
+            || containsWordExact(text,"breakup");
+        return containsWordExact(text,word);
+    }
+
+    private static boolean containsWordExact(String text,String word) {
         int at=text.indexOf(word);
         while(at>=0) {
             int end=at+word.length();

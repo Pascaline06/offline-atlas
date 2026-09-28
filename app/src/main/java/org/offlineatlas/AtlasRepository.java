@@ -260,6 +260,15 @@ final class AtlasRepository implements AutoCloseable {
             if (singular!=null && !keywords.contains(singular)) {
                 keywords.add(singular); expression.append(" OR \"").append(singular).append('"');
             }
+            if ("collapse".equals(word)) {
+                // The pack often calls a state's collapse its dissolution.
+                // Expand retrieval while retaining the question's meaning.
+                for (String synonym:new String[]{"dissolution","dissolved","breakup"}) {
+                    if (!keywords.contains(synonym)) {
+                        keywords.add(synonym); expression.append(" OR \"").append(synonym).append('"');
+                    }
+                }
+            }
         }
         if (expression.length()==0) return new Answer("Use more specific search words.",results);
         StringBuilder priority=new StringBuilder();
@@ -286,6 +295,8 @@ final class AtlasRepository implements AutoCloseable {
             // matches from outranking the actual research subject.
             String anchors=baseTerms.size()<2 ? expression.toString()
                 : "\""+baseTerms.get(0)+"\" AND \""+baseTerms.get(baseTerms.size()-1)+"\"";
+            if (baseTerms.size()>=2 && "collapse".equals(baseTerms.get(baseTerms.size()-1)))
+                anchors="\""+baseTerms.get(0)+"\" AND (\"collapse\" OR \"dissolution\" OR \"dissolved\" OR \"breakup\")";
             for (int attempt=0;attempt<(anchors.equals(expression.toString())?1:2);attempt++) {
                 args.set(0,attempt==0 ? anchors : expression.toString());
                 try (Cursor c=database.rawQuery(sql,args.toArray(new String[0]))) {
