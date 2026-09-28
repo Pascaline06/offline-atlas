@@ -157,7 +157,6 @@ public final class MainActivity extends Activity {
                     if (answer.quickAnswer!=null) output.addView(label(answer.quickAnswer,18));
                     if (generate) { modelText.setText("Model checking the sources…"); output.addView(modelText); }
                     output.addView(label(answer.notice+"\n"+(travelQuestion ? answer.results.size()+" leads · " : "")+"Local retrieval: "+retrievalMs+" ms",16));
-                    if (answer.results.isEmpty() && !travelQuestion) output.addView(label("No matching local evidence found. Try another city or a more specific question.",16));
                     for (AtlasRepository.Result result:answer.results) {
                         if (travelQuestion) { addTravelResult(result); continue; }
                         output.addView(label(result.title,20));

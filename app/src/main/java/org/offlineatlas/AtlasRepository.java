@@ -315,17 +315,21 @@ final class AtlasRepository implements AutoCloseable {
         ranked.sort(Comparator.comparing((RankedResult item)->item.covered).reversed()
             .thenComparing(Comparator.comparingInt((RankedResult item)->item.score).reversed())
             .thenComparingInt(item->item.order));
+        // A broad FTS match is only a candidate, not evidence for the answer.
+        // Do not fill the screen with unrelated articles when none of the
+        // selected passages actually covers the question.
         for (RankedResult item:ranked) {
+            if (!item.covered) continue;
             boolean seen=false;
             for (Result earlier:results) if (earlier.title.equalsIgnoreCase(item.result.title)) { seen=true; break; }
             if (!seen) results.add(item.result);
-            if (results.size()==5) break;
+            if (results.size()==3) break;
         }
-        boolean supported=!ranked.isEmpty() && ranked.get(0).covered && comparison==null;
+        boolean supported=!results.isEmpty() && comparison==null;
         return new Answer(comparison!=null
-            ? "The offline pack did not find distinct articles for both subjects. These are partial leads; a complete comparison is not supported."
+            ? "The offline pack did not find distinct articles for both subjects. A complete comparison is not supported."
             : supported ? "Relevant passages from the installed offline pack. Check claims against the cited text."
-              : "The local excerpts do not cover enough of this question for a sourced model answer. Partial leads only.",results,null,supported);
+              : "I could not find a sufficiently relevant passage in this offline pack to answer that question.",results,null,supported);
     }
     private static String isoCountry(String input) {
         for (String code:Locale.getISOCountries()) {
