@@ -13,6 +13,12 @@ public final class ResearchEvidenceCases {
         if(!selected.contains("Shinkansen") || selected.contains("¥14170")) throw new AssertionError(selected);
         if(!ResearchEvidence.sufficientlyCovered("Kyoto",selected,"How do I get from Tokyo to Kyoto?"))
             throw new AssertionError("Sourced route withheld");
+        String trainQuestion="How can I travel from Tokyo to Kyoto by train?";
+        if(!ResearchEvidence.terms(trainQuestion).toString().equals("[tokyo, kyoto]"))
+            throw new AssertionError("Route terms include mode instead of endpoints");
+        if(!ResearchEvidence.sufficientlyCovered("Kyoto",
+            "Take the Shinkansen train from Tokyo to Kyoto.",trainQuestion))
+            throw new AssertionError("Train route withheld");
         if(ResearchEvidence.sufficientlyCovered("Night","During a solar eclipse it is partially night.",
             "Can solar power work at night?")) throw new AssertionError("Irrelevant night page accepted");
         if(ResearchEvidence.sufficientlyCovered("The Fall of the Roman Empire (movie)",

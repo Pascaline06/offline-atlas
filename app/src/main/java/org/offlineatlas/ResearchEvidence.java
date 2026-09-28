@@ -11,6 +11,9 @@ import java.util.regex.Pattern;
 /** Finds a question-relevant passage in a local article; never adds facts. */
 final class ResearchEvidence {
     private static final Pattern WORD=Pattern.compile("[\\p{L}\\p{N}]+");
+    private static final Pattern ROUTE_ENDPOINTS=Pattern.compile(
+        "\\bfrom\\s+(.+?)\\s+to\\s+(.+?)(?:\\s+by\\s+(?:train|bus|ferry|plane|air))?[?.!]?\\s*$",
+        Pattern.CASE_INSENSITIVE);
     private static final Pattern CAUSE=Pattern.compile("\\b(?:because|due to|caused|causes|reasons?|led to|leading to|resulted in|results in|brought|scattering|converts?|produces?|lift)\\b",Pattern.CASE_INSENSITIVE);
     private static final Pattern TRANSPORT=Pattern.compile("\\b(?:train|shinkansen|bus|ferry|flight|route|station|travel)\\b",Pattern.CASE_INSENSITIVE);
     private static final String STOP="|the|and|what|why|how|tell|about|compare|best|are|for|from|with|causes|caused|cause|work|works|does|did|was|were|have|has|had|its|this|that|main|way|get|stay|into|between|can|you|me|to|in|of|is|at|happen|happening|occur|occurs|begin|become|";
@@ -18,7 +21,10 @@ final class ResearchEvidence {
 
     static ArrayList<String> terms(String question) {
         ArrayList<String> terms=new ArrayList<>();
-        Matcher words=WORD.matcher(question.toLowerCase(Locale.ROOT));
+        Matcher endpoints=ROUTE_ENDPOINTS.matcher(question);
+        String subject=isRoute(question) && endpoints.find()
+            ? endpoints.group(1)+" "+endpoints.group(2) : question;
+        Matcher words=WORD.matcher(subject.toLowerCase(Locale.ROOT));
         while(words.find()) {
             String word=words.group();
             if(word.length()<3 || STOP.contains("|"+word+"|")) continue;
