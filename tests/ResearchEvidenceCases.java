@@ -49,6 +49,23 @@ public final class ResearchEvidenceCases {
             +"The adaptive immune system remembers particular pathogens.";
         if(!ResearchEvidence.excerpt(vaccineArticle,"How do vaccines train the immune system?",550)
             .contains("antigens in vaccines")) throw new AssertionError("Vaccine evidence lost to generic passage");
+        if(ResearchEvidence.sufficientlyCovered("No fly list",
+            "The list prevents some people from flying on airplanes.",
+            "How do airplanes fly?")) throw new AssertionError("Unrelated flight page accepted");
+        if(ResearchEvidence.sufficientlyCovered("Word processor",
+            "A word processor is a computer program that edits text.",
+            "How does a computer processor work?")) throw new AssertionError("Wrong type of processor accepted");
+        if(ResearchEvidence.sufficientlyCovered("Norfolk Tides",
+            "The Tides are named after the nearby bay because the team plays in Norfolk.",
+            "Why do tides occur?")) throw new AssertionError("Unrelated team accepted");
+        if(!ResearchEvidence.sufficientlyCovered("Earthquake",
+            "Earthquakes are caused by tectonic movements in the Earth's crust.",
+            "Why do earthquakes happen?")) throw new AssertionError("Singular subject missed");
+        if(ResearchEvidence.score("Vaccine",
+            "Vaccines prepare the immune system against infection.",
+            "How do vaccines work?") <= ResearchEvidence.score("HPV vaccine",
+            "This vaccine is used because the virus can cause cancer.",
+            "How do vaccines work?")) throw new AssertionError("General article lost to narrow vaccine");
         System.out.println("ResearchEvidence cases passed");
     }
 }

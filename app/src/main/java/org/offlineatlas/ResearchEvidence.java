@@ -13,7 +13,7 @@ final class ResearchEvidence {
     private static final Pattern WORD=Pattern.compile("[\\p{L}\\p{N}]+");
     private static final Pattern CAUSE=Pattern.compile("\\b(?:because|due to|caused|causes|reasons?|led to|leading to|resulted in|results in|brought|scattering|converts?|produces?|lift)\\b",Pattern.CASE_INSENSITIVE);
     private static final Pattern TRANSPORT=Pattern.compile("\\b(?:train|shinkansen|bus|ferry|flight|route|station|travel)\\b",Pattern.CASE_INSENSITIVE);
-    private static final String STOP="|the|and|what|why|how|tell|about|compare|best|are|for|from|with|causes|caused|cause|work|works|does|did|was|were|have|has|had|its|this|that|main|way|get|stay|into|between|can|you|me|to|in|of|is|at|";
+    private static final String STOP="|the|and|what|why|how|tell|about|compare|best|are|for|from|with|causes|caused|cause|work|works|does|did|was|were|have|has|had|its|this|that|main|way|get|stay|into|between|can|you|me|to|in|of|is|at|happen|happening|occur|occurs|begin|become|";
     private ResearchEvidence() { }
 
     static ArrayList<String> terms(String question) {
@@ -44,6 +44,28 @@ final class ResearchEvidence {
         int subjectWords=0;
         for(String term:terms) if(containsWord(lowerTitle,term)) subjectWords++;
         if(subjectWords==0) return false;
+        if(terms.size()==1 && question.toLowerCase(Locale.ROOT).matches("^(?:why|how)\\b.*")
+            && !lowerTitle.equals(terms.get(0)) && !lowerTitle.equals(singular(terms.get(0))))
+            return false;
+        boolean how=question.toLowerCase(Locale.ROOT).matches("^how\\b.*");
+        if(how && !isRoute(question)) {
+            // A matching verb elsewhere on a page is not a mechanism for the
+            // subject: "No fly list" does not explain how airplanes fly.
+            if(!containsWord(lowerTitle,terms.get(0))) return false;
+            if(terms.size()>1 && !containsWord(lowerTitle,terms.get(1))) {
+                boolean sameMechanism=false;
+                BreakIterator sentences=BreakIterator.getSentenceInstance(Locale.ENGLISH);
+                sentences.setText(passage);
+                int start=sentences.first(),end;
+                while((end=sentences.next())!=BreakIterator.DONE) {
+                    String sentence=passage.substring(start,end).toLowerCase(Locale.ROOT);
+                    if(containsWord(sentence,terms.get(0)) && containsWord(sentence,terms.get(1))
+                        && CAUSE.matcher(sentence).find()) sameMechanism=true;
+                    start=end;
+                }
+                if(!sameMechanism) return false;
+            }
+        }
         String combined=(title+" "+passage).toLowerCase(Locale.ROOT);
         int matched=0;
         for(String term:terms) if(containsWord(combined,term)) matched++;
@@ -89,6 +111,8 @@ final class ResearchEvidence {
         Passage passage=best(plain,question,tokens);
         int score=titleMatch*4+passage.score;
         String lower=question.toLowerCase(Locale.ROOT);
+        if(tokens.size()==1 && (title.equalsIgnoreCase(tokens.get(0))
+            || title.equalsIgnoreCase(singular(tokens.get(0))))) score+=30;
         if(titleWords.size()>1 && (" "+lower+" ").contains(" "+title.toLowerCase(Locale.ROOT)+" ")) score+=8;
         if(titleWords.size()==1 && title.length()>3 && containsWord(lower,title.toLowerCase(Locale.ROOT))) score+=6;
         if(title.toLowerCase(Locale.ROOT).startsWith("list of ")) score-=12;
@@ -175,7 +199,21 @@ final class ResearchEvidence {
         if("collapse".equals(word)) return containsWordExact(text,word)
             || containsWordExact(text,"dissolution") || containsWordExact(text,"dissolved")
             || containsWordExact(text,"breakup");
+        if(word.length()>5 && word.endsWith("ies"))
+            return containsWordExact(text,word) || containsWordExact(text,word.substring(0,word.length()-3)+"y");
+        if(word.length()>4 && word.endsWith("oes"))
+            return containsWordExact(text,word) || containsWordExact(text,word.substring(0,word.length()-2));
+        if(word.length()>4 && word.endsWith("s") && !word.endsWith("ss"))
+            return containsWordExact(text,word) || containsWordExact(text,word.substring(0,word.length()-1));
         return containsWordExact(text,word);
+    }
+
+    private static String singular(String word) {
+        if(word.length()>5 && word.endsWith("ies")) return word.substring(0,word.length()-3)+"y";
+        if(word.length()>4 && word.endsWith("oes")) return word.substring(0,word.length()-2);
+        if(word.length()>4 && word.endsWith("s") && !word.endsWith("ss"))
+            return word.substring(0,word.length()-1);
+        return word;
     }
 
     private static boolean containsWordExact(String text,String word) {

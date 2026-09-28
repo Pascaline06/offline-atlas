@@ -256,6 +256,7 @@ final class AtlasRepository implements AutoCloseable {
             expression.append('"').append(word).append('"');
             String singular=null;
             if (word.length()>5 && word.endsWith("ies")) singular=word.substring(0,word.length()-3)+"y";
+            else if (word.length()>4 && word.endsWith("oes")) singular=word.substring(0,word.length()-2);
             else if (word.length()>4 && word.endsWith("s") && !word.endsWith("ss")) singular=word.substring(0,word.length()-1);
             if (singular!=null && !keywords.contains(singular)) {
                 keywords.add(singular); expression.append(" OR \"").append(singular).append('"');
@@ -273,6 +274,15 @@ final class AtlasRepository implements AutoCloseable {
         if (expression.length()==0) return new Answer("Use more specific search words.",results);
         StringBuilder priority=new StringBuilder();
         ArrayList<String> args=new ArrayList<>(); args.add(expression.toString());
+        // Prefer an article whose whole title is a question subject. Without
+        // this, FTS's many partial title matches can consume the 16 candidate
+        // slots before "Earthquake" or "Vaccine" is ever examined.
+        StringBuilder subjectTitles=new StringBuilder();
+        for (String word:keywords) {
+            if (subjectTitles.length()>0) subjectTitles.append(',');
+            subjectTitles.append('?');
+            args.add(word);
+        }
         StringBuilder exactPhrases=new StringBuilder();
         for (int i=0;i+1<keywords.size();i++) {
             if (exactPhrases.length()>0) exactPhrases.append(',');
@@ -284,11 +294,12 @@ final class AtlasRepository implements AutoCloseable {
             priority.append("CASE WHEN instr(lower(d.title), ?) > 0 THEN 1 ELSE 0 END");
             args.add(keywords.get(i));
         }
+        String exactSubject="CASE WHEN lower(d.title) IN ("+subjectTitles+") THEN 0 ELSE 1 END,";
         String exactTitle=exactPhrases.length()>0 ? "CASE WHEN lower(d.title) IN ("+exactPhrases+") THEN 0 ELSE 1 END," : "";
         String sourceOrder=ResearchEvidence.isRoute(question)
             ? "CASE WHEN d.id LIKE 'enwikivoyage:%' THEN 0 ELSE 1 END"
             : "CASE WHEN d.id LIKE 'simplewiki:%' THEN 0 ELSE 1 END";
-        String sql="SELECT d.title, d.body, d.source,d.source_date,d.license FROM doc_search JOIN documents d ON d.rowid=doc_search.rowid WHERE doc_search MATCH ? ORDER BY "+exactTitle+" ("+priority+") DESC, CASE WHEN lower(d.title) LIKE '%(movie)%' OR lower(d.title) LIKE '%(film)%' THEN 1 ELSE 0 END, "+sourceOrder+", length(d.title), d.title COLLATE NOCASE LIMIT 16";
+        String sql="SELECT d.title, d.body, d.source,d.source_date,d.license FROM doc_search JOIN documents d ON d.rowid=doc_search.rowid WHERE doc_search MATCH ? ORDER BY "+exactSubject+exactTitle+" ("+priority+") DESC, CASE WHEN lower(d.title) LIKE '%(movie)%' OR lower(d.title) LIKE '%(film)%' THEN 1 ELSE 0 END, "+sourceOrder+", length(d.title), d.title COLLATE NOCASE LIMIT 16";
         ArrayList<RankedResult> ranked=new ArrayList<>();
         try {
             // Co-occurrence anchors stop common words and partial title

@@ -1,5 +1,11 @@
 # Evaluation protocol (preliminary)
 
+## Exploratory retrieval probe, 2026-09-28
+
+Thirty hand-chosen science, history and route questions were run against the installed September pack using the Android candidate SQL and Java passage scorer on a desktop. This was a development diagnostic; it includes previously tested questions and did not run the phone model or compare answers with a frontier baseline. It must not be quoted as a benchmark result.
+
+The 0.1.24 changes moved generic vaccine, earthquake and tide explanations to the corresponding main articles, and eliminated observed irrelevant matches for an airplane mechanism question (a flight ban page) and a computer processor question (a text editor). The same probe still withheld useful answers about volcanoes, stars, ocean salinity and some travel routes, and returned questionable passages for several historical causes. The next evaluation must grade the *entire generated answer* against its cited passage, including failures and latency on the target device.
+
 Use a held-out set of at least 100 natural questions sampled across travel, history, science, health, and practical comparisons. Include at least 25 place-specific queries in cities on several continents; rotate queries to prevent tailoring to a single demo. Assess the *whole answer*, not whether a document was retrieved. For each question record the question, expected evidence, offline answer, source links and snapshot dates, frontier+internet comparison answer, latency to first useful text, total latency, peak resident memory, and manual factual grade. An independently graded result above half the baseline utility is required to support the bounty's quality claim. Publish the rubric and failures alongside successes.
 
 Travel checks should distinguish an explicit dietary tag, independently verified menu, current opening hours, proximity, and recommendation quality. A missing tag means unknown; never infer vegan status from a name or cuisine. Offline data cannot guarantee current hours. Failure to find a city's venues must be reported plainly.
