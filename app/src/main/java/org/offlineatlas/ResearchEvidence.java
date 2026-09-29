@@ -21,6 +21,12 @@ final class ResearchEvidence {
     private static final Pattern EXPLANATORY_VERB=Pattern.compile(
         "\\b(?:uses?|using|transmits?|sends?|routes?|transfers?|works? by|converts?|changes?|moves?|takes?|produces?|makes?|"+
         "forms? when|occurs? when|happens? when|caused by|due to|because|through)\\b",Pattern.CASE_INSENSITIVE);
+    private static final Pattern OPERATING_DETAIL=Pattern.compile(
+        "\\b(?:because|when|through|is by|converts?|moves?|flows?|expands?|contracts?|vibrat\\w*|"+
+        "magnetism|turns?|grows?|pistons?|voltage|condens\\w*|electrons?|"+
+        "transmits?|signals?|secreted|absorbs?|releases?|takes?|pushes?|pulls?|"+
+        "expansion|contraction|electronics|"+
+        "heats?|cools?|reflects?|refracts?|spins?)\\b",Pattern.CASE_INSENSITIVE);
     private static final String STOP="|the|and|what|why|how|tell|about|compare|best|are|for|from|with|causes|caused|cause|work|works|does|did|was|were|have|has|had|its|this|that|main|way|get|stay|into|between|can|you|me|to|in|of|is|at|happen|happening|occur|occurs|begin|become|";
     private ResearchEvidence() { }
 
@@ -77,6 +83,20 @@ final class ResearchEvidence {
             && !lowerTitle.equals(terms.get(0)) && !lowerTitle.equals(singular(terms.get(0))))
             return false;
         boolean how=question.toLowerCase(Locale.ROOT).matches("^how\\b.*");
+        if(how && !isRoute(question) && !terms.contains("make")
+            && exactTopicInQuestion(title,question)) {
+            // An exact article is useful only if its selected passage explains
+            // the requested operation. A definition such as "barometer measures
+            // pressure" is not an explanation of how it measures pressure.
+            if(operatingEvidence(passage,terms,question)
+                && (terms.size()==1 || title.indexOf(' ')>=0
+                    || terms.subList(1,terms.size()).stream().anyMatch(word->
+                        containsWord(passage.toLowerCase(Locale.ROOT),word)))) return true;
+            if(question.toLowerCase(Locale.ROOT).matches("(?s).*\\bwork\\b.*")
+                || terms.stream().anyMatch(word->Set.of("travel","point","measure","pump","sense",
+                    "become","filter","form","germinate","fly","launch","remember","divide",
+                    "navigate","stop").contains(word))) return false;
+        }
         if(how && !isRoute(question)) {
             // A matching verb elsewhere on a page is not a mechanism for the
             // subject: "No fly list" does not explain how airplanes fly.
@@ -333,6 +353,58 @@ final class ResearchEvidence {
         if(word.length()>4 && word.endsWith("s") && !word.endsWith("ss"))
             return containsWordExact(text,word) || containsWordExact(text,word.substring(0,word.length()-1));
         return containsWordExact(text,word);
+    }
+
+    private static boolean exactTopicInQuestion(String title,String question) {
+        String lowerTitle=title.toLowerCase(Locale.ROOT);
+        if(lowerTitle.length()<4 || lowerTitle.contains("/") || lowerTitle.contains("(")) return false;
+        String lower=question.toLowerCase(Locale.ROOT);
+        ArrayList<String> words=terms(question);
+        if(words.isEmpty()) return false;
+        String first=words.get(0);
+        if(!lowerTitle.equals(first) && !lowerTitle.equals(singular(first))
+            && !lowerTitle.startsWith(first+" ") && !lowerTitle.startsWith(singular(first)+" ")) return false;
+        if(lowerTitle.indexOf(' ')>=0) return lower.contains(lowerTitle);
+        return containsWord(lower,lowerTitle) || containsWord(lower,lowerTitle+"s");
+    }
+
+    private static boolean operatingEvidence(String passage,ArrayList<String> terms,String question) {
+        if(terms.isEmpty() || !OPERATING_DETAIL.matcher(passage).find()) return false;
+        String lower=passage.toLowerCase(Locale.ROOT);
+        if(lower.matches("(?s).*\\b(?:fails to|does not|cannot)\\s+"+
+            Pattern.quote(terms.get(terms.size()-1))+"\\b.*")) return false;
+        boolean knownAction=question.toLowerCase(Locale.ROOT).matches("(?s).*\\bworks?\\b.*");
+        for(String action:terms) {
+            String relation=switch(action) {
+                case "work", "works" -> "";
+                case "travel" -> "move|moves|moving|travel|travels|vibrat\\w*|propagat\\w*";
+                case "point" -> "point|points|pointing|magnetism";
+                case "measure" -> "measure\\w*|expansion|contraction|indicat\\w*";
+                case "pump" -> "pump\\w*|piston|suck\\w*";
+                case "sense" -> "sense\\w*|detect\\w*|voltage";
+                case "become" -> "become|becomes|turn\\w*|chrysalis|metamorphosis";
+                case "filter" -> "filter\\w*|nephron|remov\\w*";
+                case "form" -> "form\\w*|condens\\w*|evaporat\\w*";
+                case "germinate" -> "germinat\\w*|seedling|sprout\\w*";
+                case "fly" -> "fly|flies|flying|lift|wings?|thrust";
+                case "launch" -> "launch\\w*|thrust|exhaust";
+                case "remember" -> "remember\\w*|memory|recogniz\\w*";
+                case "divide" -> "divide|divides|dividing|division|mitosis|meiosis";
+                case "navigate" -> "navigat\\w*|guid\\w*|compass|radar";
+                case "stop" -> "stop\\w*|brak\\w*|slow\\w*";
+                default -> null;
+            };
+            if(relation!=null) {
+                knownAction=true;
+                if(!relation.isEmpty() && !lower.matches("(?s).*\\b(?:"+relation+")\\b.*")) return false;
+            }
+        }
+        if(!knownAction) return false;
+        for(String word:terms) {
+            if(word.equals("make") || word.equals("work") || word.equals("works")) continue;
+            if(containsWord(lower,word)) return true;
+        }
+        return false;
     }
 
     private static String singular(String word) {

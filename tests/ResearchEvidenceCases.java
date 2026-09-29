@@ -91,6 +91,18 @@ public final class ResearchEvidenceCases {
             "How do clouds form?");
         assertRejected("Spider silk", "Spiders use their silk to create webs for capturing prey.",
             "How do spiders make silk?");
+        assertAccepted("Windmill", "In a windmill used for pumping water, turning the drive shaft moves a piston. "
+            +"The piston can suck up and push out water.", "How does a windmill pump water?");
+        assertAccepted("Smoke detector", "An ionization smoke detector detects smoke when particles attach and change the voltage.",
+            "How does a smoke detector sense smoke?");
+        assertAccepted("Sound", "Vibrations make air molecules move, carrying sound waves away from their source.",
+            "How does sound travel through air?");
+        assertRejected("Barometer", "A barometer is an instrument used to measure air pressure in hectopascals.",
+            "How does a barometer measure air pressure?");
+        assertAccepted("Desalination", "Desalination removes salt from water. Most desalination is by distillation.",
+            "How does desalination work?");
+        assertRejected("Internet", "People use Internet services by paying providers and visiting websites.",
+            "How does the internet work?");
         assertAccepted("Spider silk", "Spiders produce silk from proteins secreted by glands in their bodies.",
             "How do spiders make silk?");
         String clouds="Clouds form when water vapour cools and condenses into tiny droplets. "
@@ -125,6 +137,9 @@ public final class ResearchEvidenceCases {
             "How does the immune system remember infections?");
         assertRejected("Computer",
             "The processor of a computer is made from integrated circuits and contains transistors.",
+            "How does a computer processor work?");
+        assertRejected("Computer",
+            "This computer was never built because Babbage lacked money. Later machines played music.",
             "How does a computer processor work?");
         assertRejected("Train Stop – Two Minutes",
             "Train Stop – Two Minutes is a 1972 Soviet fantasy movie.",
