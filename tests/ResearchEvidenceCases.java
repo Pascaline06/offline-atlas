@@ -67,6 +67,15 @@ public final class ResearchEvidenceCases {
         if(!ResearchEvidence.sufficientlyCovered("Earthquake",
             "Earthquakes are caused by tectonic movements in the Earth's crust.",
             "Why do earthquakes happen?")) throw new AssertionError("Singular subject missed");
+        if(!ResearchEvidence.sufficientlyCovered("Rocket",
+            "Rockets can be launched because exhaust thrust exceeds the weight of the vehicle.",
+            "How do rockets launch?")) throw new AssertionError("Launch inflection withheld");
+        if(!ResearchEvidence.sufficientlyCovered("Ice",
+            "Ice floats on water because ice has less density than water.",
+            "Why does ice float?")) throw new AssertionError("Exact subject evidence withheld");
+        if(ResearchEvidence.sufficientlyCovered("Ice cream float",
+            "An ice cream float is a drink made from ice cream and soda.",
+            "Why does ice float?")) throw new AssertionError("Unrelated compound title accepted");
         if(ResearchEvidence.score("Vaccine",
             "Vaccines prepare the immune system against infection.",
             "How do vaccines work?") <= ResearchEvidence.score("HPV vaccine",

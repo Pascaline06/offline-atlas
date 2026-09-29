@@ -276,6 +276,8 @@ final class ResearchEvidence {
             || containsWordExact(text,"glowing");
         if("float".equals(word)) return containsWordExact(text,"float") || containsWordExact(text,"floats")
             || containsWordExact(text,"floating");
+        if("launch".equals(word)) return containsWordExact(text,"launch")
+            || containsWordExact(text,"launched") || containsWordExact(text,"launching");
         if("collapse".equals(word)) return containsWordExact(text,word)
             || containsWordExact(text,"dissolution") || containsWordExact(text,"dissolved")
             || containsWordExact(text,"breakup");

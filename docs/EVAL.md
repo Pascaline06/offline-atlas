@@ -104,3 +104,10 @@ development and 23/70 exploratory queries. This is only a retrieval diagnostic:
 it does not grade model output and includes no independent internet baseline.
 Even this first gate is too weak for a >50% utility claim. Do not distribute
 this source checkpoint as a validated quality release or submit the bounty.
+
+The next retrieval checkpoint also checks the exact local subject article after
+the FTS candidate limit; this recovered the Ice article instead of only ice
+cream float titles. Recognizing “launched” for “launch” recovered the Rocket
+mechanism. The development probe still selected 21/30 passages; exploratory
+coverage rose from 23/70 to 25/70. Candidate coverage remains a generous upper
+bound on answer utility and cannot substitute for grading model responses.

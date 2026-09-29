@@ -37,6 +37,8 @@ def candidates(con, question):
         elif len(word)>4 and word.endswith('oes'): singular=word[:-2]
         elif len(word)>4 and word.endswith('s') and not word.endswith('ss'): singular=word[:-1]
         if singular and singular not in keywords: keywords.append(singular)
+        for form in {'launch':('launched','launching')}.get(word,()):
+            if form not in keywords and len(keywords)<12: keywords.append(form)
         if word=='collapse': keywords.extend(x for x in ('dissolution','dissolved','breakup') if x not in keywords)
     if not keywords: return []
     expression=' OR '.join('"'+w+'"' for w in keywords)
@@ -55,7 +57,13 @@ def candidates(con, question):
     seen={}
     for query in dict.fromkeys([anchors,expression]):
         for title,body,origin in con.execute(sql,[query]+params):
-            seen.setdefault(title.lower(),(title,body,origin))
+            seen.setdefault(title,(title,body,origin))
+    if base and not ROUTE.search(question):
+        subject=base[0]
+        singular=subject[:-1] if len(subject)>4 and subject.endswith('s') and not subject.endswith('ss') else subject
+        for title,body,origin in con.execute("SELECT title,body,source FROM documents WHERE lower(id)=lower(?) OR lower(id)=lower(?) LIMIT 6",
+                                             ('simplewiki:'+subject,'simplewiki:'+singular)):
+            seen.setdefault(title,(title,body,origin))
     return list(seen.values())
 
 

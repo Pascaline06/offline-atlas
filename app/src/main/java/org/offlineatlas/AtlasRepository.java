@@ -261,6 +261,13 @@ final class AtlasRepository implements AutoCloseable {
             if (singular!=null && !keywords.contains(singular)) {
                 keywords.add(singular); expression.append(" OR \"").append(singular).append('"');
             }
+            String[] forms=switch(word) {
+                case "launch" -> new String[]{"launched","launching"};
+                default -> new String[0];
+            };
+            for (String form:forms) if(!keywords.contains(form) && keywords.size()<12) {
+                keywords.add(form); expression.append(" OR \"").append(form).append('"');
+            }
             if ("collapse".equals(word)) {
                 // The pack often calls a state's collapse its dissolution.
                 // Expand retrieval while retaining the question's meaning.
@@ -330,6 +337,29 @@ final class AtlasRepository implements AutoCloseable {
                                 || (candidate.covered==earlier.covered && candidate.score>earlier.score))
                                 ranked.set(duplicate,candidate);
                         }
+                    }
+                }
+            }
+            // FTS can spend all 16 candidate slots on compound titles such
+            // as "ice cream float". Also examine the exact subject article;
+            // the same evidence check still decides whether it can answer.
+            if(!baseTerms.isEmpty() && !ResearchEvidence.isRoute(question)) {
+                String subject=baseTerms.get(0);
+                String singular=subject.length()>4 && subject.endsWith("s") && !subject.endsWith("ss")
+                    ? subject.substring(0,subject.length()-1) : subject;
+                try (Cursor c=database.rawQuery("SELECT title,body,source,source_date,license FROM documents WHERE lower(id)=lower(?) OR lower(id)=lower(?) LIMIT 6",
+                    new String[]{"simplewiki:"+subject,"simplewiki:"+singular})) {
+                    while(c.moveToNext()) {
+                        String title=c.getString(0);
+                        String plain=WikiText.excerpt(c.getString(1),title,11000);
+                        String excerpt=ResearchEvidence.excerpt(plain,question,1100);
+                        RankedResult candidate=new RankedResult(new Result(title,excerpt,c.getString(2),c.getString(3),c.getString(4)),
+                            ResearchEvidence.score(title,plain,question),ranked.size(),
+                            ResearchEvidence.sufficientlyCovered(title,excerpt,question));
+                        int duplicate=-1;
+                        for(int i=0;i<ranked.size();i++) if(ranked.get(i).result.title.equalsIgnoreCase(title)) {duplicate=i;break;}
+                        if(duplicate<0) ranked.add(candidate);
+                        else if(candidate.covered && !ranked.get(duplicate).covered) ranked.set(duplicate,candidate);
                     }
                 }
             }
