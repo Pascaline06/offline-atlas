@@ -4,6 +4,10 @@ on:
     paths:
       - '.github/workflows/model-pilot.yml'
       - 'tools/model_pilot.py'
+  pull_request:
+    paths:
+      - '.github/workflows/model-pilot.yml'
+      - 'tools/model_pilot.py'
   workflow_dispatch:
 jobs:
   pilot:
