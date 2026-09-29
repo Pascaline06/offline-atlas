@@ -1,0 +1,71 @@
+# Exploratory retrieval questions. Abstention is valid when the pack lacks support.
+Why does lightning strike?
+How do clouds form?
+Why does rain fall?
+How does a hurricane form?
+What causes a tsunami?
+Why do seasons change?
+How do glaciers move?
+Why are deserts dry?
+How does a rainbow form?
+Why is the sea blue?
+How does gravity work?
+Why does the Earth rotate?
+How do eclipses happen?
+Why do comets have tails?
+What causes auroras?
+How do black holes form?
+How does nuclear fusion work?
+Why is the Sun hot?
+How do rockets launch?
+How does GPS work?
+How does the internet work?
+How does a transistor work?
+How do electric motors work?
+How does a refrigerator work?
+How do heat pumps work?
+How does a bicycle stay balanced?
+How do airplanes navigate?
+How do trains stop?
+How do ships float?
+Why does ice float?
+How do bees make honey?
+Why do birds migrate?
+How do bats navigate?
+How do spiders make silk?
+Why do leaves change color?
+How do trees grow?
+How does evolution work?
+How does DNA replication work?
+How do cells divide?
+How does the heart pump blood?
+How do lungs exchange oxygen?
+Why do vaccines prevent disease?
+How does malaria spread?
+Why do viruses mutate?
+What caused the Great Depression?
+Why did the Cold War begin?
+Why did the Ottoman Empire fall?
+How did the printing press change society?
+What caused the Industrial Revolution?
+Why did the American Civil War begin?
+Why did the First World War end?
+How did ancient Romans build roads?
+How do earthquakes trigger tsunamis?
+Why do rivers flood?
+How does desalination work?
+How can I travel from Paris to Lyon by train?
+How can I travel from London to Edinburgh by train?
+How can I travel from Osaka to Kyoto by train?
+How can I travel from New York to Boston by train?
+How can I travel from Delhi to Agra by train?
+How can I travel from Berlin to Munich by train?
+How can I travel from Tokyo to Osaka by train?
+How can I travel from Rome to Florence by train?
+How can I travel from Madrid to Barcelona by train?
+How can I travel from Sydney to Melbourne by train?
+How can I travel from Cairo to Alexandria by train?
+How can I travel from Amsterdam to Rotterdam by train?
+How can I travel from Vancouver to Seattle by train?
+How can I travel from Mumbai to Pune by train?
+How can I travel from Beijing to Shanghai by train?

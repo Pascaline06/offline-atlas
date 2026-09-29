@@ -28,3 +28,19 @@ Travel checks should distinguish an explicit dietary tag, independently verified
 - Version 0.1.19 returned London dining leads in about 532 ms on the Samsung S10+ in the next airplane-mode check. The tester reported immediate display. Listings remain historical leads, with no current-menu verification or meaningful ranking.
 - Unreleased 0.1.20 source was checked on the existing 2.4 GB database using the same FTS candidate order and Java passage scorer. In nine exploratory prompts, the highest-ranked covered passages discussed sky scattering, airplane lift, immune memory, causes of the 2008 financial crisis, Tokyo-to-Kyoto Shinkansen, Roman decline, and vaccine-induced immunity. The Soviet collapse query was withheld because the selected guide paragraph mentioned the collapse without explaining its causes; the solar-power-at-night query was also withheld. Candidate retrieval and Java cases were measured on a desktop, not on the Samsung. This is a development spot check, not a held-out quality score. Some other retrieved leads are irrelevant and the coverage heuristic cannot prove the model's claims follow from the passages. A signed Android build, phone latency and factual review are still required.
 - Follow-up source check caught an overly broad table-cleanup change: it removed the vaccine evidence from an adaptive-immunity article. The cleaner now retains encyclopedic wikitables, while the passage scorer prefers the rare vaccine term over a generic sentence. This restored that source passage in desktop retrieval. No Android APK or phone result has been produced for this source revision.
+# Development corpus probe
+
+Run `python3 tools/probe_research.py /path/to/atlas.db
+data/eval-development-questions.txt --output development-results.json` and
+repeat with `data/eval-exploratory-questions.txt`. The script reproduces the
+article candidate query and calls the same Java passage selection and evidence
+check as the app. It requires Python 3 with SQLite FTS4 and Java 17 with the
+`jdk.compiler` module. Inspect each excerpt and title in the JSON; a nonempty
+result can still be misleading. The questions were used during development and
+are not a held-out test or a measure of answer accuracy.
+
+The app's travel venue route, comparisons, local model generation, and citation
+review are outside this probe. A submission assessment still needs a held-out
+question set, side-by-side judgments against internet plus a frontier model,
+latency and peak RAM measurements on compatible GrapheneOS Pixel hardware,
+offline installation evidence, and checks of pack coverage and cited claims.

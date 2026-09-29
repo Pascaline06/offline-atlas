@@ -72,6 +72,57 @@ public final class ResearchEvidenceCases {
             "How do vaccines work?") <= ResearchEvidence.score("HPV vaccine",
             "This vaccine is used because the virus can cause cancer.",
             "How do vaccines work?")) throw new AssertionError("General article lost to narrow vaccine");
+        assertRejected("World War III","World War III could be caused by nuclear tensions.",
+            "What caused World War I?");
+        assertRejected("French Revolution of 1848","The French Revolution of 1848 was caused by a financial crisis.",
+            "Why did the French Revolution happen?");
+        assertRejected("French West Indies","The colonies rebelled, leading to the French Revolution.",
+            "Why did the French Revolution happen?");
+        assertRejected("Berlin Wall","The fall of the Berlin Wall led to German reunification.",
+            "Why did the Berlin Wall fall?");
+        assertRejected("Kyoto","The bus travels from Kyoto to Tokyo.",
+            "How do I get from Tokyo to Kyoto?");
+        assertRejected("Tokyo","A train runs from Tokyo to Kyoto.",
+            "How do I get from Tokyo to Kyoto?");
+        assertRejected("Kyoto Airport","A flight goes from Tokyo to Kyoto.",
+            "How can I travel from Tokyo to Kyoto by train?");
+        assertRejected("Immune system",
+            "An immune system is vulnerable to infection because it attacks normal tissues.",
+            "How does the immune system remember infections?");
+        assertRejected("Computer",
+            "The processor of a computer is made from integrated circuits and contains transistors.",
+            "How does a computer processor work?");
+        assertRejected("Train Stop – Two Minutes",
+            "Train Stop – Two Minutes is a 1972 Soviet fantasy movie.",
+            "How do trains stop?");
+        assertRejected("American Civil War casualties",
+            "The war caused many deaths and casualties.",
+            "Why did the American Civil War begin?");
+        assertRejected("African Americans in the American Civil War",
+            "The American Civil War began due to slavery, and many African Americans fought in it.",
+            "Why did the American Civil War begin?");
+        assertAccepted("Volcano","Pressure builds as magma rises and causes volcanoes to erupt.",
+            "Why do volcanoes erupt?");
+        assertAccepted("Airplane","An airplane flies because lift from the wings counters gravity.",
+            "How do airplanes fly?");
+        assertAccepted("Airplane","Air flows over the wings, which are shaped to create lift.",
+            "How do airplanes fly?");
+        assertAccepted("Western Roman Empire","The Empire had weak leadership, which caused instability and helped invasions.",
+            "Why did the Roman Empire fall?");
+        assertAccepted("Financial crisis of 2007–2008",
+            "The factors that led to the crisis were reported earlier. Background and causes: risky lending spread.",
+            "What caused the 2008 financial crisis?");
+        assertAccepted("Kyoto","A train runs from Tokyo to Kyoto.",
+            "How can I travel from Tokyo to Kyoto by train?");
         System.out.println("ResearchEvidence cases passed");
+    }
+
+    private static void assertRejected(String title,String text,String question) {
+        if(ResearchEvidence.sufficientlyCovered(title,text,question))
+            throw new AssertionError("Unrelated evidence accepted: "+title+" / "+question);
+    }
+    private static void assertAccepted(String title,String text,String question) {
+        if(!ResearchEvidence.sufficientlyCovered(title,text,question))
+            throw new AssertionError("Relevant evidence missed: "+title+" / "+question);
     }
 }

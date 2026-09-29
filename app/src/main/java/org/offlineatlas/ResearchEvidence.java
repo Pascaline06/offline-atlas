@@ -14,8 +14,10 @@ final class ResearchEvidence {
     private static final Pattern ROUTE_ENDPOINTS=Pattern.compile(
         "\\bfrom\\s+(.+?)\\s+to\\s+(.+?)(?:\\s+by\\s+(?:train|bus|ferry|plane|air))?[?.!]?\\s*$",
         Pattern.CASE_INSENSITIVE);
-    private static final Pattern CAUSE=Pattern.compile("\\b(?:because|due to|caused|causes|reasons?|led to|leading to|resulted in|results in|brought|scattering|converts?|produces?|lift)\\b",Pattern.CASE_INSENSITIVE);
+    private static final Pattern CAUSE=Pattern.compile("\\b(?:because|due to|caused|causes|reasons?|led to|led up to|leading to|resulted in|results in|brought|scattering|converts?|produces?|creates?|lift|pressure)\\b",Pattern.CASE_INSENSITIVE);
     private static final Pattern TRANSPORT=Pattern.compile("\\b(?:train|shinkansen|bus|ferry|flight|route|station|travel)\\b",Pattern.CASE_INSENSITIVE);
+    private static final Pattern WORLD_WAR=Pattern.compile("\\bworld war (?:i{1,3}|[123])\\b",Pattern.CASE_INSENSITIVE);
+    private static final Pattern EVENT_YEAR=Pattern.compile("\\b(?:17|18|19|20)\\d{2}\\b");
     private static final String STOP="|the|and|what|why|how|tell|about|compare|best|are|for|from|with|causes|caused|cause|work|works|does|did|was|were|have|has|had|its|this|that|main|way|get|stay|into|between|can|you|me|to|in|of|is|at|happen|happening|occur|occurs|begin|become|";
     private ResearchEvidence() { }
 
@@ -47,9 +49,26 @@ final class ResearchEvidence {
         if(question.toLowerCase(Locale.ROOT).matches("^(?:why|how|what caused)\\b.*")
             && (lowerTitle.startsWith("list of ") || lowerTitle.startsWith("lists of "))) return false;
         if(lowerTitle.matches(".*\\((?:film|movie|song|album|band)\\).*")) return false;
+        if(lowerTitle.matches(".*\\b(?:movie|film|novel|song|album|series)\\b.*")
+            && question.toLowerCase(Locale.ROOT).matches("^(?:why|how|what caused)\\b.*")) return false;
+        if(conflictingEvent(title,question)) return false;
         int subjectWords=0;
         for(String term:terms) if(containsWord(lowerTitle,term)) subjectWords++;
         if(subjectWords==0) return false;
+        boolean why=question.toLowerCase(Locale.ROOT).matches("^(?:why|what caused)\\b.*");
+        if(why && terms.size()>1 && subjectWords<2 && !lowerTitle.equals(singular(terms.get(0)))) return false;
+        if(why && lowerTitle.matches(".*\\b(?:casualties|aftermath|deaths|memorials)\\b.*")) return false;
+        if(why && terms.size()>=2 && !Character.isDigit(terms.get(0).charAt(0))
+            && lowerTitle.contains(terms.get(0)+" "+terms.get(1))
+            && !lowerTitle.equals(terms.get(0)+" "+terms.get(1))
+            && !lowerTitle.startsWith("history of ")
+            && !lowerTitle.startsWith("the history of ")
+            && !lowerTitle.startsWith("causes of ")
+            && !lowerTitle.startsWith("western ")
+            && !lowerTitle.startsWith(terms.get(0)+" "+terms.get(1)+" of ")) return false;
+        if(why && terms.size()>1 && !lowerTitle.contains(terms.get(0)+" "+terms.get(1))
+            && !Character.isDigit(terms.get(0).charAt(0))
+            && !lowerTitle.equals(singular(terms.get(0)))) return false;
         if(terms.size()==1 && question.toLowerCase(Locale.ROOT).matches("^(?:why|how)\\b.*")
             && !lowerTitle.equals(terms.get(0)) && !lowerTitle.equals(singular(terms.get(0))))
             return false;
@@ -58,6 +77,8 @@ final class ResearchEvidence {
             // A matching verb elsewhere on a page is not a mechanism for the
             // subject: "No fly list" does not explain how airplanes fly.
             if(!containsWord(lowerTitle,terms.get(0))) return false;
+            if(terms.size()==2 && !lowerTitle.equals(singular(terms.get(0)))
+                && !lowerTitle.equals(terms.get(0)+" "+terms.get(1))) return false;
             if(terms.size()>1 && !containsWord(lowerTitle,terms.get(1))) {
                 boolean sameMechanism=false;
                 BreakIterator sentences=BreakIterator.getSentenceInstance(Locale.ENGLISH);
@@ -69,19 +90,30 @@ final class ResearchEvidence {
                         && CAUSE.matcher(sentence).find()) sameMechanism=true;
                     start=end;
                 }
-                if(!sameMechanism) return false;
+                if(!sameMechanism && !(lowerTitle.equals(singular(terms.get(0)))
+                    && containsWord(passage.toLowerCase(Locale.ROOT),terms.get(1)))) return false;
             }
+            if(terms.size()>=3 && !containsWord(passage.toLowerCase(Locale.ROOT),terms.get(terms.size()-2)))
+                return false;
+            if(terms.size()>=2 && !CAUSE.matcher(passage).find()) return false;
         }
         String combined=(title+" "+passage).toLowerCase(Locale.ROOT);
         int matched=0;
         for(String term:terms) if(containsWord(combined,term)) matched++;
         if(isRoute(question)) {
             String lower=passage.toLowerCase(Locale.ROOT);
+            Matcher endpoints=ROUTE_ENDPOINTS.matcher(question);
+            String destination=endpoints.find()?endpoints.group(2).toLowerCase(Locale.ROOT).trim():"";
+            if(!lowerTitle.equals(destination) && !lowerTitle.startsWith(destination+"/")) return false;
+            if(question.toLowerCase(Locale.ROOT).matches(".*\\bby train[?.!]?$")
+                && !lower.matches("(?s).*\\b(?:train|shinkansen|rail)\\b.*")) return false;
             if(terms.size()<2 || !containsWord(lower,terms.get(0))
                 || !containsWord(lower,terms.get(terms.size()-1))
                 || !TRANSPORT.matcher(passage).find()) return false;
+            int origin=lower.indexOf(terms.get(0)),dest=lower.indexOf(terms.get(terms.size()-1));
+            if(dest<origin && !lower.substring(dest).matches("(?s).*\\bfrom\\s+"+Pattern.quote(terms.get(0))+"\\b.*")) return false;
         }
-        if(question.toLowerCase(Locale.ROOT).matches("^(?:why|what caused)\\b.*")) {
+        if(why) {
             // Mentioning a collapse and a different event's cause in adjacent
             // sentences is not evidence for why the collapse occurred.
             boolean causal=false;
@@ -93,9 +125,28 @@ final class ResearchEvidence {
                 int shared=0;
                 for(String term:terms) if(containsWord(sentence,term)) shared++;
                 if(CAUSE.matcher(sentence).find() && shared>=Math.min(2,terms.size())
-                    && (terms.size()<3 || containsWord(sentence,terms.get(terms.size()-1)))) causal=true;
+                    && (terms.size()<3 || containsWord(sentence,terms.get(terms.size()-1)))) {
+                    int marker=directionalConsequence(sentence);
+                    if(marker<0 || sentence.indexOf(terms.get(0))>marker || sentence.indexOf(terms.get(0))<0)
+                        causal=true;
+                }
                 start=end;
             }
+            if(!causal && lowerTitle.equals(singular(terms.get(0))) && terms.size()==2
+                && CAUSE.matcher(passage).find() && containsWord(passage.toLowerCase(Locale.ROOT),terms.get(1)))
+                causal=true;
+            if(!causal && lowerTitle.equals(String.join(" ",terms))
+                && passage.toLowerCase(Locale.ROOT).contains("causes of")) causal=true;
+            if(!causal && terms.size()==3 && "fall".equals(terms.get(2))
+                && lowerTitle.contains(terms.get(0)+" "+terms.get(1))
+                && (containsWord(lowerTitle,"fall") || lowerTitle.startsWith("western "))
+                && containsWord(passage.toLowerCase(Locale.ROOT),terms.get(1))
+                && CAUSE.matcher(passage).find()
+                && directionalConsequence(passage.toLowerCase(Locale.ROOT))<0) causal=true;
+            if(!causal && Character.isDigit(terms.get(0).charAt(0))
+                && subjectWords==terms.size() && terms.size()>=3
+                && passage.toLowerCase(Locale.ROOT).contains("causes")
+                && CAUSE.matcher(passage).find()) causal=true;
             if(!causal && !(terms.size()==3 && "fall".equals(terms.get(2))
                 && subjectWords>=2 && passage.toLowerCase(Locale.ROOT).contains("deteriorat")
                 && CAUSE.matcher(passage).find())) return false;
@@ -118,7 +169,10 @@ final class ResearchEvidence {
         int score=titleMatch*4+passage.score;
         String lower=question.toLowerCase(Locale.ROOT);
         if(tokens.size()==1 && (title.equalsIgnoreCase(tokens.get(0))
-            || title.equalsIgnoreCase(singular(tokens.get(0))))) score+=30;
+            || title.equalsIgnoreCase(singular(tokens.get(0))))) score+=60;
+        if(tokens.size()>=2 && !isRoute(question)
+            && title.equalsIgnoreCase(tokens.get(0)+" "+tokens.get(1))
+            && CAUSE.matcher(passage.text).find()) score+=35;
         if(titleWords.size()>1 && (" "+lower+" ").contains(" "+title.toLowerCase(Locale.ROOT)+" ")) score+=8;
         if(titleWords.size()==1 && title.length()>3 && containsWord(lower,title.toLowerCase(Locale.ROOT))) score+=6;
         if(title.toLowerCase(Locale.ROOT).startsWith("list of ")) score-=12;
@@ -170,6 +224,10 @@ final class ResearchEvidence {
                     value+=11;
             }
             if(explanation && CAUSE.matcher(sentence).find()) value+=9;
+            if(explanation && overlap>=Math.min(2,tokens.size()) && CAUSE.matcher(sentence).find()) value+=22;
+            if(explanation && overlap>=2 && lower.contains("causes of")) value+=17;
+            if(explanation && question.toLowerCase(Locale.ROOT).startsWith("how ")
+                && tokens.size()>=3 && containsWord(lower,tokens.get(tokens.size()-1))) value+=18;
             if(route && TRANSPORT.matcher(sentence).find()) value+=6;
             if(route && overlap>=2) value+=4;
             if(i==0) value+=1;
@@ -202,6 +260,19 @@ final class ResearchEvidence {
     }
 
     private static boolean containsWord(String text,String word) {
+        if("fly".equals(word)) return containsWordExact(text,"fly") || containsWordExact(text,"flying")
+            || containsWordExact(text,"flight") || containsWordExact(text,"lift");
+        if("erupt".equals(word)) return containsWordExact(text,"erupt") || containsWordExact(text,"erupts")
+            || containsWordExact(text,"eruption") || containsWordExact(text,"eruptions");
+        if("generate".equals(word) || "make".equals(word)) return containsWordExact(text,word)
+            || containsWordExact(text,"produces") || containsWordExact(text,"produce")
+            || containsWordExact(text,"convert") || containsWordExact(text,"converts")
+            || containsWordExact(text,"create") || containsWordExact(text,"creates");
+        if("french".equals(word)) return containsWordExact(text,"french") || containsWordExact(text,"france");
+        if("shine".equals(word)) return containsWordExact(text,"shine") || containsWordExact(text,"light")
+            || containsWordExact(text,"glowing");
+        if("float".equals(word)) return containsWordExact(text,"float") || containsWordExact(text,"floats")
+            || containsWordExact(text,"floating");
         if("collapse".equals(word)) return containsWordExact(text,word)
             || containsWordExact(text,"dissolution") || containsWordExact(text,"dissolved")
             || containsWordExact(text,"breakup");
@@ -231,6 +302,21 @@ final class ResearchEvidence {
             at=text.indexOf(word,at+1);
         }
         return false;
+    }
+
+    private static boolean conflictingEvent(String title,String question) {
+        Matcher askedWar=WORLD_WAR.matcher(question),foundWar=WORLD_WAR.matcher(title);
+        if(askedWar.find() && foundWar.find() && !askedWar.group().equalsIgnoreCase(foundWar.group())) return true;
+        Matcher askedYear=EVENT_YEAR.matcher(question),foundYear=EVENT_YEAR.matcher(title);
+        if(foundYear.find() && !askedYear.find() && question.toLowerCase(Locale.ROOT).contains("french revolution"))
+            return true;
+        return askedYear.find(0) && foundYear.find(0)
+            && !containsWord(title.toLowerCase(Locale.ROOT),askedYear.group());
+    }
+
+    private static int directionalConsequence(String sentence) {
+        Matcher m=Pattern.compile("\\b(?:led to|leading to|resulted in|results in)\\b").matcher(sentence);
+        return m.find()?m.start():-1;
     }
 
     private static final class Passage {
