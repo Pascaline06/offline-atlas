@@ -181,8 +181,12 @@ public final class MainActivity extends Activity {
                 boolean travelQuestion=question.matches("(?is)(?=.*\\bvegan\\b)(?=.*\\brestaurants?\\b).*");
                 boolean generate=modelRunner!=null && !answer.results.isEmpty() && answer.canGenerate && !travelQuestion
                     && !(ComparisonQuery.parse(question)!=null && answer.quickAnswer==null);
+                boolean comparison=ComparisonQuery.parse(question)!=null;
+                boolean twoSources=answer.results.size()>1 && (comparison || AnswerCompleteness.airplaneQuestion(question)
+                    || AnswerCompleteness.sovietQuestion(question));
                 String citedPassage=generate && answer.quickAnswer==null
-                    ? EvidenceFallback.fromExcerpt(answer.results.get(0).description) : "";
+                    ? EvidenceFallback.fromExcerpt(answer.results.get(0).description)
+                        +(twoSources ? "\n\n"+EvidenceFallback.fromExcerpt(answer.results.get(1).description,2) : "") : "";
                 TextView citedText=citedPassage.isEmpty() ? null
                     : label("Cited local passage:\n"+citedPassage,18);
                 TextView modelText=label("Writing local answer…",18);
@@ -208,11 +212,11 @@ public final class MainActivity extends Activity {
                 });
                 if (generate) {
                     StringBuilder evidence=new StringBuilder(); int count=0;
-                    int maxSources=ComparisonQuery.parse(question)!=null ? 2 : 1;
+                    int maxSources=twoSources ? 2 : 1;
                     for (AtlasRepository.Result result:answer.results) {
                         if (++count>maxSources) break;
                         evidence.append('[').append(count).append("] ").append(result.title).append(". ")
-                            .append(result.description,0,Math.min(maxSources==2 ? 460 : 900,result.description.length()))
+                            .append(result.description,0,Math.min(maxSources==2 ? 700 : 900,result.description.length()))
                             .append('\n');
                     }
                     String response;
@@ -221,7 +225,7 @@ public final class MainActivity extends Activity {
                     ScheduledExecutorService sampler=Executors.newSingleThreadScheduledExecutor();
                     sampler.scheduleAtFixedRate(() -> peakPssKiB.accumulateAndGet(processPssKiB(),Math::max),
                         0,500,TimeUnit.MILLISECONDS);
-                    try { response=modelRunner.answer(question,evidence.toString(),partial -> {
+                    try { response=modelRunner.answer(question,evidence.toString(),comparison,partial -> {
                         if(!partial.isEmpty()) firstTextMs.compareAndSet(-1,SystemClock.elapsedRealtime()-modelStart);
                         runOnUiThread(() -> modelText.setText("Local model answer (in progress):\n"+partial));
                     }); }

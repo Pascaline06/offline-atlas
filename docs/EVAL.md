@@ -85,3 +85,22 @@ only the former punctuation placement and tests the actual first draft with
 the exported excerpt. Its UI shows the exact cited source passage before model
 generation finishes, keeping a useful result visible if review rejects the
 model. This is a targeted check, not evidence of general answer correctness.
+
+Version 0.1.29 on the Samsung S10+ accepted the airplane answer in 12.0 seconds
+(2.1 seconds retrieval, 5.2 seconds to first model text, about 3.1 GiB sampled
+process PSS). The answer said only that forward motion produces lift over the
+wings. It did not explain propulsion or why the wing experiences upward force.
+This passes citation formatting but fails the intended answer-quality standard.
+
+The installed 2.4 GB pack includes separate Airplane and Lift (force) passages
+for thrust and downward air deflection, plus a dissolution article discussing
+economic difficulty and republic departures. Pending 0.1.30 source selection
+puts these directly in the evidence and requires both dimensions in the two
+observed question types. Local source extraction was checked against the actual
+pack; the Android model's new answer has not yet been measured on a phone.
+
+The development probe against that pack selected a covered passage in 21/30
+development and 23/70 exploratory queries. This is only a retrieval diagnostic:
+it does not grade model output and includes no independent internet baseline.
+Even this first gate is too weak for a >50% utility claim. Do not distribute
+this source checkpoint as a validated quality release or submit the bounty.

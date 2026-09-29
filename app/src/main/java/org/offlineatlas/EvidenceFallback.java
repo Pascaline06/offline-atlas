@@ -8,6 +8,10 @@ final class EvidenceFallback {
     private EvidenceFallback() { }
 
     static String fromExcerpt(String excerpt) {
+        return fromExcerpt(excerpt,1);
+    }
+
+    static String fromExcerpt(String excerpt,int sourceNumber) {
         if(excerpt==null || excerpt.isBlank()) return "";
         BreakIterator iterator=BreakIterator.getSentenceInstance(Locale.ENGLISH);
         iterator.setText(excerpt);
@@ -22,7 +26,7 @@ final class EvidenceFallback {
             if(result.length()+sentence.length()>600) break;
             if(result.length()>0) result.append(' ');
             sentence=sentence.replaceFirst("[.!?]\\s*$","").trim();
-            result.append(sentence).append(" [1].");
+            result.append(sentence).append(" [").append(sourceNumber).append("].");
             count++;
         }
         return result.toString();

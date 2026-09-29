@@ -55,6 +55,8 @@ jobs:
           javac -d build/review-tests app/src/main/java/org/offlineatlas/AnswerReview.java app/src/main/java/org/offlineatlas/EvidenceFallback.java tests/EvidenceFallbackCases.java tests/PhoneRegressionCases.java
           java -cp build/review-tests org.offlineatlas.EvidenceFallbackCases
           java -cp build/review-tests org.offlineatlas.PhoneRegressionCases
+          javac -d build/review-tests app/src/main/java/org/offlineatlas/AnswerCompleteness.java app/src/main/java/org/offlineatlas/SourceWindows.java tests/AnswerCompletenessCases.java
+          java -cp build/review-tests org.offlineatlas.AnswerCompletenessCases
           gradle --no-daemon :app:assembleDebug
           unzip -Z1 app/build/outputs/apk/debug/app-debug.apk | grep -qx 'assets/atlas.db'
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump permissions app/build/outputs/apk/debug/app-debug.apk | tee permissions.txt

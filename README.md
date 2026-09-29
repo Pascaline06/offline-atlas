@@ -1,5 +1,14 @@
 # Offline Atlas — Android device test build
 
+Version 0.1.30 is a source checkpoint pending device quality validation. The
+0.1.29 airplane answer passed citation review but gave only one sentence about
+lift. The pack also contains propulsion and a better lift explanation; the
+current source selects both for this question and requires a two-step answer.
+The Soviet-collapse source now includes the pack's economic and republic
+passages as well as the selected glasnost passage. The 100-question development
+probe still covered only 44 passages, and no held-out answer-quality result
+has been established. This is not a submission-quality release.
+
 Version 0.1.29 fixes the exact citation-formatting failure exported from the
 Samsung S10+ in 0.1.28: the model wrote a supported airplane sentence followed
 by `. [1].`, which the reviewer treated as an uncited sentence. The reviewer
