@@ -181,10 +181,15 @@ public final class MainActivity extends Activity {
                 boolean travelQuestion=question.matches("(?is)(?=.*\\bvegan\\b)(?=.*\\brestaurants?\\b).*");
                 boolean generate=modelRunner!=null && !answer.results.isEmpty() && answer.canGenerate && !travelQuestion
                     && !(ComparisonQuery.parse(question)!=null && answer.quickAnswer==null);
+                String citedPassage=generate && answer.quickAnswer==null
+                    ? EvidenceFallback.fromExcerpt(answer.results.get(0).description) : "";
+                TextView citedText=citedPassage.isEmpty() ? null
+                    : label("Cited local passage:\n"+citedPassage,18);
                 TextView modelText=label("Writing local answer…",18);
                 runOnUiThread(() -> {
                     output.removeAllViews();
                     if (answer.quickAnswer!=null) output.addView(label(answer.quickAnswer,18));
+                    if (citedText!=null) output.addView(citedText);
                     if (generate) { modelText.setText("Model checking the sources…"); output.addView(modelText); }
                     output.addView(label(answer.notice+"\n"+(travelQuestion ? answer.results.size()+" leads · " : "")+"Local retrieval: "+retrievalMs+" ms",16));
                     for (AtlasRepository.Result result:answer.results) {
@@ -226,7 +231,7 @@ public final class MainActivity extends Activity {
                     String rejected=modelRunner.rejectedDraft();
                     boolean accepted=!complete.startsWith("Local model answer rejected")
                         && !complete.startsWith("Model error:");
-                    String fallback=accepted ? "" : EvidenceFallback.fromExcerpt(answer.results.get(0).description);
+                    String fallback=accepted ? "" : citedPassage;
                     String displayed=accepted ? complete : fallback.isEmpty() ? complete
                         : "Cited local passage (model answer not verified):\n"+fallback;
                     String outcome=accepted ? "accepted" : complete.startsWith("Model error:") ? "error" : "rejected";
@@ -234,8 +239,13 @@ public final class MainActivity extends Activity {
                     saveEvaluation(true,question,answer,displayed,outcome,
                         rejected==null ? "" : rejected,retrievalMs,firstTextMs.get(),totalMs,peakPssKiB.get());
                     runOnUiThread(() -> {
-                        if (!accepted) modelText.setText(complete+(fallback.isEmpty() ? "" : "\n\n"+displayed));
-                        else modelText.setText("Local model answer (verify against evidence):\n"+complete);
+                        if (!accepted && !fallback.isEmpty())
+                            modelText.setText("The model draft could not be verified. The cited local passage above remains available.");
+                        else if (!accepted) modelText.setText(complete);
+                        else {
+                            if(citedText!=null) output.removeView(citedText);
+                            modelText.setText("Local model answer (verify against evidence):\n"+complete);
+                        }
                         if (rejected!=null && !rejected.isEmpty()) {
                             TextView diagnostic=label("Show rejected drafts (unverified)",13);
                             diagnostic.setOnClickListener(view -> diagnostic.setText(diagnostic.getText().length()<80

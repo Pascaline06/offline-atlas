@@ -77,3 +77,11 @@ explaining the collapse. Version 0.1.28 records unverified drafts in the
 user-exported local file and provides an exact cited source extract after a
 model failure. The extract must be distinguished from a generated answer in
 quality grading.
+
+The two v0.1.28 airplane exports included the same rejected drafts. The first
+draft was a relevant sentence with its citation after the period (`lift. [1].`);
+the retry placed `[1]` before its factual claim. Version 0.1.29 normalizes
+only the former punctuation placement and tests the actual first draft with
+the exported excerpt. Its UI shows the exact cited source passage before model
+generation finishes, keeping a useful result visible if review rejects the
+model. This is a targeted check, not evidence of general answer correctness.

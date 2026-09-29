@@ -1,5 +1,16 @@
 # Offline Atlas — Android device test build
 
+Version 0.1.29 fixes the exact citation-formatting failure exported from the
+Samsung S10+ in 0.1.28: the model wrote a supported airplane sentence followed
+by `. [1].`, which the reviewer treated as an uncited sentence. The reviewer
+now moves that same citation before the sentence's final punctuation and
+checks the result normally. A regression case uses the device's actual draft
+and source passage. For questions with a covered article, the app shows a
+short cited extract immediately while the model works; it replaces that extract
+only when the model response passes review. The extract is labeled as a source
+passage, not a synthesized answer. Android compilation and regression tests
+cannot by themselves certify model behavior across other questions.
+
 Version 0.1.28 follows the Samsung S10+ v0.1.27 exports: two airplane model
 attempts generated text but both failed the uncited-introduction check; the
 Soviet answer passed on a retry yet remained a limited source recital. The

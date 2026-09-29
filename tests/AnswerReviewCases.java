@@ -38,6 +38,13 @@ public final class AnswerReviewCases {
             soviet,"causal link absent from supplied evidence");
         assertValid("Many factors resulted in the dissolution of the Soviet Union [1]. "
             +"Under glasnost, the Communist Party lost control over the media [1].",soviet);
+        String actualPlaneDraft="When the aircraft travels forwards, air flows over the wings, "
+            +"which are shaped like an airfoil to create lift. [1].";
+        assertReviewed(actualPlaneDraft,
+            "[1] Airplane. When the aircraft travels forwards, air flows over the wings, "
+                +"which are shaped to create lift. This shape is called an airfoil and is shaped like a bird's wing.",
+            "When the aircraft travels forwards, air flows over the wings, "
+                +"which are shaped like an airfoil to create lift [1].");
     }
 
     private static void assertValid(String raw,String evidence) {
