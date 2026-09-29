@@ -111,7 +111,9 @@ final class ResearchEvidence {
                 || !containsWord(lower,terms.get(terms.size()-1))
                 || !TRANSPORT.matcher(passage).find()) return false;
             int origin=lower.indexOf(terms.get(0)),dest=lower.indexOf(terms.get(terms.size()-1));
-            if(dest<origin && !lower.substring(dest).matches("(?s).*\\bfrom\\s+"+Pattern.quote(terms.get(0))+"\\b.*")) return false;
+            boolean bidirectional=lower.matches("(?s).*\\b(?:direct trains connect|trains connect|railway line between)\\b.*");
+            if(dest<origin && !bidirectional
+                && !lower.substring(dest).matches("(?s).*\\bfrom\\s+"+Pattern.quote(terms.get(0))+"\\b.*")) return false;
         }
         if(why) {
             // Mentioning a collapse and a different event's cause in adjacent
@@ -230,6 +232,9 @@ final class ResearchEvidence {
                 && tokens.size()>=3 && containsWord(lower,tokens.get(tokens.size()-1))) value+=18;
             if(route && TRANSPORT.matcher(sentence).find()) value+=6;
             if(route && overlap>=2) value+=4;
+            if(route && tokens.size()>=2 && containsWord(lower,tokens.get(0))
+                && containsWord(lower,tokens.get(tokens.size()-1))
+                && lower.matches("(?s).*\\b(?:train|trains|rail|shinkansen)\\b.*")) value+=55;
             if(i==0) value+=1;
             if(value>best) {best=value;index=i;}
         }

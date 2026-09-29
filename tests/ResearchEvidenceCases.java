@@ -13,6 +13,10 @@ public final class ResearchEvidenceCases {
         if(!selected.contains("Shinkansen") || selected.contains("¥14170")) throw new AssertionError(selected);
         if(!ResearchEvidence.sufficientlyCovered("Kyoto",selected,"How do I get from Tokyo to Kyoto?"))
             throw new AssertionError("Sourced route withheld");
+        if(!ResearchEvidence.sufficientlyCovered("Florence",
+            "By train: Frequent direct trains connect Florence with Rome.",
+            "How can I travel from Rome to Florence by train?"))
+            throw new AssertionError("Direct train service is bidirectional");
         String trainQuestion="How can I travel from Tokyo to Kyoto by train?";
         if(!ResearchEvidence.terms(trainQuestion).toString().equals("[tokyo, kyoto]"))
             throw new AssertionError("Route terms include mode instead of endpoints");

@@ -111,3 +111,11 @@ cream float titles. Recognizing “launched” for “launch” recovered the Ro
 mechanism. The development probe still selected 21/30 passages; exploratory
 coverage rose from 23/70 to 25/70. Candidate coverage remains a generous upper
 bound on answer utility and cannot substitute for grading model responses.
+
+A subsequent route correction prefers sentences naming both endpoints and rail
+travel. It accepts an explicit direct-train connection regardless of which
+endpoint is named first, while still rejecting a reversed one-way bus passage.
+The exact pack probe recovered the Delhi–Agra and Rome–Florence train passages,
+raising exploratory passage selection to 27/70 and the combined development
+set to 48/100. These are development prompts used in tuning, not held-out
+answers or a bounty score.
