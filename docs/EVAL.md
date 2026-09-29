@@ -119,3 +119,32 @@ The exact pack probe recovered the Delhi–Agra and Rome–Florence train passag
 raising exploratory passage selection to 27/70 and the combined development
 set to 48/100. These are development prompts used in tuning, not held-out
 answers or a bounty score.
+
+## Frozen research/route retrieval audit, 2026-09-29
+
+Before running the new probe, 50 distinct research and rail-route questions
+were committed in `data/eval-holdout-research-20260929.txt`. This is a smaller
+diagnostic than the planned 100-question whole-answer evaluation. The first
+run selected 7/50 passages; the 1918 timeline was plainly unrelated, while
+the Busan/West subpage gave only an indirect rail clue. A source check found
+that the Busan main guide explicitly said KTX trains connect Seoul to Busan:
+the filter accepted `train` but excluded plural `trains`. The fix selects the
+main guide and rejects an Osaka airport passage incorrectly used as an Osaka
+city-to-Kyoto train route. It also rejects the unrelated year timeline.
+
+The final source checkpoint selected 6/50 passages. Manual inspection judged
+only 3 as directly useful evidence: microwave heating, salt lowering the
+freezing point, and the Seoul–Busan KTX connection. Three selected snippets
+are poor: Barometer states what it measures without a mechanism, North
+Magnetic Pole says a compass does **not** always point north, and Seed explains
+dormancy rather than germination. Forty-four questions have no selected
+passage. This inspection is not an independent factual baseline, full-answer
+grade, model timing test, or statistical estimate of a random query stream.
+The development probe now selects 20/30 plus 25/70 (45/100), down from 48
+because weak causal matches and an airport-based route were rejected.
+
+**Decision:** Do not submit the app against a >50% utility target on this
+evidence. Current source coverage and passage precision fail before model
+generation. A new or substantially expanded corpus, robust source selection,
+then whole-answer grading against a frontier-plus-internet baseline are
+needed. A GrapheneOS-compatible Pixel measurement remains outstanding.

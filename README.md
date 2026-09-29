@@ -1,13 +1,16 @@
 # Offline Atlas — Android device test build
 
-Version 0.1.32 is a source checkpoint pending device quality validation. The
+Version 0.1.33 is a source checkpoint pending device quality validation. The
 0.1.29 airplane answer passed citation review but gave only one sentence about
 lift. The pack also contains propulsion and a better lift explanation; the
 current source selects both for this question and requires a two-step answer.
 The Soviet-collapse source now includes the pack's economic and republic
 passages as well as the selected glasnost passage. The 100-question development
-probe now selects passages for 48 of 100 tuned questions, and no held-out answer-quality result
-has been established. This is not a submission-quality release.
+probe selects passages for 45 of 100 tuned questions after rejecting several
+false matches. A frozen 50-question research and rail-route set selected only
+6 passages, of which just 3 appear directly useful on manual excerpt review.
+No whole-answer or frontier-plus-internet comparison has been run. This is not
+a submission-quality release; see `docs/EVAL.md` for the audit.
 
 Version 0.1.29 fixes the exact citation-formatting failure exported from the
 Samsung S10+ in 0.1.28: the model wrote a supported airplane sentence followed

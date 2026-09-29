@@ -17,6 +17,9 @@ public final class ResearchEvidenceCases {
             "By train: Frequent direct trains connect Florence with Rome.",
             "How can I travel from Rome to Florence by train?"))
             throw new AssertionError("Direct train service is bidirectional");
+        if(!ResearchEvidence.sufficientlyCovered("Busan", "KTX trains connect Seoul to Busan via Daegu.",
+            "How can I travel from Seoul to Busan by train?"))
+            throw new AssertionError("Plural trains excluded from rail route");
         String trainQuestion="How can I travel from Tokyo to Kyoto by train?";
         if(!ResearchEvidence.terms(trainQuestion).toString().equals("[tokyo, kyoto]"))
             throw new AssertionError("Route terms include mode instead of endpoints");
@@ -80,6 +83,20 @@ public final class ResearchEvidenceCases {
         if(ResearchEvidence.sufficientlyCovered("Ice cream float",
             "An ice cream float is a drink made from ice cream and soda.",
             "Why does ice float?")) throw new AssertionError("Unrelated compound title accepted");
+        assertRejected("Lightning", "The suddenly heated air expands, which causes thunder. Lightning can strike a person.",
+            "Why does lightning strike?");
+        assertRejected("Aurora", "Auroras can only be seen at night because their light is faint.",
+            "What causes auroras?");
+        assertAccepted("Cloud", "Clouds form when water vapour cools and condenses into tiny droplets.",
+            "How do clouds form?");
+        assertRejected("Spider silk", "Spiders use their silk to create webs for capturing prey.",
+            "How do spiders make silk?");
+        assertAccepted("Spider silk", "Spiders produce silk from proteins secreted by glands in their bodies.",
+            "How do spiders make silk?");
+        String clouds="Clouds form when water vapour cools and condenses into tiny droplets. "
+            +"There are different sorts of clouds because the air where they form moves at different speeds.";
+        if(!ResearchEvidence.excerpt(clouds,"How do clouds form?",550).startsWith("Clouds form when"))
+            throw new AssertionError("Classification outranked cloud mechanism");
         if(ResearchEvidence.score("Vaccine",
             "Vaccines prepare the immune system against infection.",
             "How do vaccines work?") <= ResearchEvidence.score("HPV vaccine",
@@ -87,6 +104,8 @@ public final class ResearchEvidenceCases {
             "How do vaccines work?")) throw new AssertionError("General article lost to narrow vaccine");
         assertRejected("World War III","World War III could be caused by nuclear tensions.",
             "What caused World War I?");
+        assertRejected("1918", "The 1918 season ended early due to World War I.",
+            "What caused the 1918 influenza pandemic?");
         assertRejected("French Revolution of 1848","The French Revolution of 1848 was caused by a financial crisis.",
             "Why did the French Revolution happen?");
         assertRejected("French West Indies","The colonies rebelled, leading to the French Revolution.",
@@ -99,6 +118,8 @@ public final class ResearchEvidenceCases {
             "How do I get from Tokyo to Kyoto?");
         assertRejected("Kyoto Airport","A flight goes from Tokyo to Kyoto.",
             "How can I travel from Tokyo to Kyoto by train?");
+        assertRejected("Kyoto", "You can fly into Kansai International Airport in Osaka Bay and then get a train to Kyoto.",
+            "How can I travel from Osaka to Kyoto by train?");
         assertRejected("Immune system",
             "An immune system is vulnerable to infection because it attacks normal tissues.",
             "How does the immune system remember infections?");
