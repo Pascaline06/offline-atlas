@@ -13,10 +13,11 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
-      - name: Restore pinned llama.cpp and build CPU server
+      - name: Restore complete pinned llama.cpp and build CPU server
         run: |
-          cat third_party/llama-cpp-vendor.tar.gz.part* | tar -xzf - -C third_party
-          cmake -S third_party/llama.cpp -B build/model-pilot -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DLLAMA_BUILD_TESTS=OFF
+          git clone --quiet --filter=blob:none https://github.com/ggml-org/llama.cpp.git third_party/llama-pilot-full
+          git -C third_party/llama-pilot-full checkout --quiet 2145525a4081d66ff1a87cf43ef809f95a85ac0c
+          cmake -S third_party/llama-pilot-full -B build/model-pilot -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DLLAMA_BUILD_TESTS=OFF
           cmake --build build/model-pilot --target llama-app -j 2
       - name: Download and verify pinned model
         run: |
