@@ -44,3 +44,15 @@ review are outside this probe. A submission assessment still needs a held-out
 question set, side-by-side judgments against internet plus a frontier model,
 latency and peak RAM measurements on compatible GrapheneOS Pixel hardware,
 offline installation evidence, and checks of pack coverage and cited claims.
+
+## On-device answer records
+
+Version 0.1.26 saves each search locally as one JSON object per line. The
+**Export test results** button uses Android's document picker to save a copy.
+Each record includes the displayed answer, full excerpts, source titles and
+snapshot dates, retrieval time, first model text time, total time, and sampled
+process PSS in KiB. A missing first-text value means no model text arrived.
+The memory sampler runs every 500 ms during generation, so the value is an
+estimate and may miss a brief peak. Do not mistake the presence of a citation
+for support of every claim. Grade answers against their excerpts and an
+independently researched baseline; keep failures and refusals in the sample.

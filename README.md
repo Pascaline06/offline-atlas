@@ -1,5 +1,16 @@
 # Offline Atlas — Android device test build
 
+Version 0.1.26 records each on-device search and its displayed answer in a
+private, exportable test file. **Export test results** lets the tester choose
+where to save the JSONL file; the app does not transmit it. Records include
+the question, cited excerpts, source dates, retrieval and answer time, time to
+first model text, and a sampled process memory maximum. These measurements
+make a device assessment reviewable; sampled memory can miss a short peak.
+For supported explanations, the model receives a longer selected passage and
+is asked for a concise two- or three-sentence answer with citations. This
+prompt change needs on-device factual and latency validation. Version 0.1.26
+remains a preview and should not be submitted as a bounty claim.
+
 Version 0.1.25 adds a reproducible 100-question development probe against the
 2.4 GB knowledge pack. It improves cause and mechanism passage selection and
 rejects several false matches: a consequence of the Berlin Wall's fall as its
