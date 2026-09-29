@@ -39,9 +39,12 @@ class ModelRunner(context: Context) {
         try {
             withTimeout(120_000) {
                 val comparison = evidence.contains("[2]")
+                val mechanism = question.trimStart().startsWith("how ", ignoreCase = true)
                 val instruction = if (comparison)
                     "Compare one shared attribute covered by BOTH excerpts. Write one sentence using 'whereas' or 'while' to state each side of the difference. Place [1] AFTER the fact from excerpt 1 and [2] AFTER the fact from excerpt 2. Do not output URLs, source labels, snapshot dates, or unrelated claims."
-                else "Answer directly in two or three complete sentences. State only causal steps expressly linked in the excerpt; do not infer public reactions or consequences from adjacent facts. Cite [1] after each factual sentence. Use only the supplied excerpt."
+                else if (mechanism)
+                    "No introduction or heading. Write exactly one complete sentence explaining the mechanism explicitly stated in the excerpt. Place [1] after the fact and finish with a period. Do not add an effect absent from the excerpt."
+                else "Begin immediately with the answer, with no introduction or heading. Write two or three complete sentences. State only causal steps expressly linked in the excerpt; do not infer public reactions or consequences from adjacent facts. Cite [1] before the full stop of every sentence. Use only the supplied excerpt."
                 val first = generate(question, evidence, instruction, 256, onProgress)
                 mostRecentDraft = first
                 val review = AnswerReview.check(first, evidence, comparison)
@@ -50,7 +53,9 @@ class ModelRunner(context: Context) {
                 onProgress.accept("First draft failed the evidence check (${review.reason}). Retrying once…")
                 val retryInstruction = if (comparison)
                     "Write exactly one sentence in this form: 'Subject A uses X [1], whereas subject B uses Y [2].' Replace X and Y with supported facts about the same attribute. Citations must come AFTER the facts. Do not output URLs, dates, or source labels."
-                else "Write one or two complete factual sentences using only facts explicitly stated in the excerpt. Do not add a causal link or reaction the excerpt does not state. Cite [1] after each sentence and finish with a period."
+                else if (mechanism)
+                    "No introduction. Write exactly one sentence copied closely from the excerpt that answers the question. Put [1] before the final period."
+                else "No introduction or heading. Begin with one fact explicitly stated in the excerpt, place [1] after that fact, and end the sentence with a period. You may add one more equally sourced sentence. Do not add a causal link or reaction the excerpt does not state."
                 val retry = generate(question, evidence, retryInstruction, 192, onProgress)
                 mostRecentDraft = retry
                 val secondReview = AnswerReview.check(retry, evidence, comparison)

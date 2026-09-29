@@ -17,16 +17,19 @@ final class EvaluationLog {
     private EvaluationLog() { }
 
     static void append(File file,String appVersion,boolean modelUsed,String question,
-                       AtlasRepository.Answer answer,String finalText,long retrievalMs,
+                       AtlasRepository.Answer answer,String finalText,String modelOutcome,
+                       String rejectedDraft,long retrievalMs,
                        long firstTextMs,long totalMs,int sampledPeakPssKiB) throws IOException {
         try {
             JSONObject record=new JSONObject();
-            record.put("schema",2);
+            record.put("schema",3);
             record.put("app_version",appVersion);
             record.put("model_used",modelUsed);
             record.put("recorded_at_utc",java.time.Instant.now().toString());
             record.put("question",question);
             record.put("answer",finalText);
+            record.put("model_outcome",modelOutcome);
+            record.put("rejected_drafts",rejectedDraft==null ? "" : rejectedDraft);
             record.put("notice",answer.notice);
             record.put("can_generate",answer.canGenerate);
             record.put("retrieval_ms",retrievalMs);

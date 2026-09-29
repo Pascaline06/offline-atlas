@@ -67,3 +67,13 @@ link between media exposure and dissolution that the selected excerpt did not
 state. Version 0.1.27 rejects observed unsupported causal connectors and
 narrows irrelevant mechanism context. These two examples are diagnostic, not a
 held-out quality or target-device performance result.
+
+In the next v0.1.27 phone run, two airplane attempts each failed with
+"uncited sentence before sourced claims" despite first model text within
+about 5–6 seconds; both returned no accepted model answer in 24–27 seconds.
+The Soviet query passed on the second trial in 47.1 seconds, but its two cited
+sentences mainly restated glasnost and media exposure rather than directly
+explaining the collapse. Version 0.1.28 records unverified drafts in the
+user-exported local file and provides an exact cited source extract after a
+model failure. The extract must be distinguished from a generated answer in
+quality grading.

@@ -1,5 +1,15 @@
 # Offline Atlas — Android device test build
 
+Version 0.1.28 follows the Samsung S10+ v0.1.27 exports: two airplane model
+attempts generated text but both failed the uncited-introduction check; the
+Soviet answer passed on a retry yet remained a limited source recital. The
+model prompt now asks for an immediate cited fact without an introduction.
+If model review still fails, the app displays a clearly labeled extract of
+the selected local source instead of leaving only an error. Test exports
+include the rejection outcome and unverified draft text for diagnosis. An
+extract is not a complete model answer. This remains a preview, not a bounty
+submission.
+
 Version 0.1.27 responds to two exported Samsung S10+ offline answers from
 0.1.26. Both generated complete cited replies, but their final causal steps
 went beyond the cited passages. Answer review now rejects explicit new causal

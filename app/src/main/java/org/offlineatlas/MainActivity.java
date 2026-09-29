@@ -224,10 +224,17 @@ public final class MainActivity extends Activity {
                     finally { sampler.shutdownNow(); peakPssKiB.accumulateAndGet(processPssKiB(),Math::max); }
                     String complete=response;
                     String rejected=modelRunner.rejectedDraft();
+                    boolean accepted=!complete.startsWith("Local model answer rejected")
+                        && !complete.startsWith("Model error:");
+                    String fallback=accepted ? "" : EvidenceFallback.fromExcerpt(answer.results.get(0).description);
+                    String displayed=accepted ? complete : fallback.isEmpty() ? complete
+                        : "Cited local passage (model answer not verified):\n"+fallback;
+                    String outcome=accepted ? "accepted" : complete.startsWith("Model error:") ? "error" : "rejected";
                     long totalMs=SystemClock.elapsedRealtime()-searchStart;
-                    saveEvaluation(true,question,answer,complete,retrievalMs,firstTextMs.get(),totalMs,peakPssKiB.get());
+                    saveEvaluation(true,question,answer,displayed,outcome,
+                        rejected==null ? "" : rejected,retrievalMs,firstTextMs.get(),totalMs,peakPssKiB.get());
                     runOnUiThread(() -> {
-                        if (complete.startsWith("Local model answer rejected") || complete.startsWith("Model error:")) modelText.setText(complete);
+                        if (!accepted) modelText.setText(complete+(fallback.isEmpty() ? "" : "\n\n"+displayed));
                         else modelText.setText("Local model answer (verify against evidence):\n"+complete);
                         if (rejected!=null && !rejected.isEmpty()) {
                             TextView diagnostic=label("Show rejected drafts (unverified)",13);
@@ -242,7 +249,7 @@ public final class MainActivity extends Activity {
                         search.setEnabled(true);
                     });
                 } else saveEvaluation(false,question,answer,answer.quickAnswer!=null ? answer.quickAnswer : answer.notice,
-                    retrievalMs,-1,SystemClock.elapsedRealtime()-searchStart,peakPssKiB.get());
+                    "not_run","",retrievalMs,-1,SystemClock.elapsedRealtime()-searchStart,peakPssKiB.get());
             } catch (Exception error) {
                 runOnUiThread(() -> { output.removeAllViews(); output.addView(label("Search failed: "+error.getClass().getSimpleName()+": "+error.getMessage(),16)); search.setEnabled(true); });
             }
@@ -255,10 +262,12 @@ public final class MainActivity extends Activity {
         return memory.getTotalPss();
     }
     private void saveEvaluation(boolean modelUsed,String question,AtlasRepository.Answer answer,String text,
+                                String modelOutcome,String rejectedDraft,
                                 long retrievalMs,long firstTextMs,long totalMs,int pssKiB) {
         try {
             String appVersion=getPackageManager().getPackageInfo(getPackageName(),0).versionName;
             EvaluationLog.append(evaluationFile(),appVersion,modelUsed,question,answer,text,
+                modelOutcome,rejectedDraft,
                 retrievalMs,firstTextMs,totalMs,pssKiB);
             runOnUiThread(() -> exportButton.setEnabled(true));
         } catch(Exception error) {

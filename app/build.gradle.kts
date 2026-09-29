@@ -20,8 +20,8 @@ android {
         applicationId = "org.offlineatlas.preview"
         minSdk = 30
         targetSdk = 35
-        versionCode = 28
-        versionName = "0.1.27"
+        versionCode = 29
+        versionName = "0.1.28"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
