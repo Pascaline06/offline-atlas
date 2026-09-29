@@ -25,9 +25,13 @@ jobs:
           printf '%s  %s\n' '3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597' "$RUNNER_TEMP/model.gguf" | sha256sum -c -
       - name: Run eight frozen model-only questions
         run: python3 tools/model_pilot.py "$RUNNER_TEMP/model.gguf" "$PWD/build/model-pilot/bin/llama" model-pilot.jsonl
+      - name: Run the pre-frozen 100 questions without retrieval
+        run: python3 tools/model_pilot.py "$RUNNER_TEMP/model.gguf" "$PWD/build/model-pilot/bin/llama" model-unseen-100.jsonl data/eval-unseen-20260929.txt
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: pinned-model-pilot-results
-          path: model-pilot.jsonl
+          path: |
+            model-pilot.jsonl
+            model-unseen-100.jsonl
           if-no-files-found: ignore

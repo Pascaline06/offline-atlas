@@ -32,6 +32,7 @@ def request(url, payload=None, timeout=10):
 
 def main():
     model=Path(sys.argv[1]); binary=Path(sys.argv[2]); output=Path(sys.argv[3])
+    questions=QUESTIONS if len(sys.argv)<5 else [line.strip() for line in Path(sys.argv[4]).read_text(encoding="utf-8").splitlines() if line.strip() and not line.startswith("#")]
     port=18887
     server=subprocess.Popen([str(binary),"serve","-m",str(model),"--host","127.0.0.1",
         "--port",str(port),"-c","4096","-t","2","-ngl","0"],
@@ -45,7 +46,7 @@ def main():
             time.sleep(1)
         else: raise TimeoutError("model server did not become ready")
         with output.open("w",encoding="utf-8") as stream:
-            for question in QUESTIONS:
+            for question in questions:
                 begin=time.monotonic()
                 try:
                     result=request(f"http://127.0.0.1:{port}/v1/chat/completions",{
