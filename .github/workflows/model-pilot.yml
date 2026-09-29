@@ -1,0 +1,41 @@
+name: Pinned offline model pilot
+on:
+  push:
+    paths:
+      - '.github/workflows/model-pilot.yml'
+      - 'tools/model_pilot.py'
+  pull_request:
+    paths:
+      - '.github/workflows/model-pilot.yml'
+      - 'tools/model_pilot.py'
+  workflow_dispatch:
+jobs:
+  pilot:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - name: Restore complete pinned llama.cpp and build CPU server
+        run: |
+          git clone --quiet --filter=blob:none https://github.com/ggml-org/llama.cpp.git third_party/llama-pilot-full
+          git -C third_party/llama-pilot-full checkout --quiet 2145525a4081d66ff1a87cf43ef809f95a85ac0c
+          cmake -S third_party/llama-pilot-full -B build/model-pilot -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DLLAMA_BUILD_TESTS=OFF
+          cmake --build build/model-pilot --target llama-app -j 2
+      - name: Download and verify pinned model
+        run: |
+          curl --fail --location --retry 3 --retry-delay 5 --output "$RUNNER_TEMP/model.gguf" 'https://huggingface.co/unsloth/Qwen3-4B-Instruct-2507-GGUF/resolve/main/Qwen3-4B-Instruct-2507-Q4_K_M.gguf'
+          printf '%s  %s\n' '3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597' "$RUNNER_TEMP/model.gguf" | sha256sum -c -
+      - name: Run eight frozen model-only questions
+        run: python3 tools/model_pilot.py "$RUNNER_TEMP/model.gguf" "$PWD/build/model-pilot/bin/llama" model-pilot.jsonl
+      - name: Run the pre-frozen 100 questions without retrieval
+        run: python3 tools/model_pilot.py "$RUNNER_TEMP/model.gguf" "$PWD/build/model-pilot/bin/llama" model-unseen-100.jsonl data/eval-unseen-20260929.txt
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: pinned-model-pilot-results
+          path: |
+            model-pilot.jsonl
+            model-unseen-100.jsonl
+          if-no-files-found: ignore

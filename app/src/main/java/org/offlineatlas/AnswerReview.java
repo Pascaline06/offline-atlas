@@ -13,6 +13,12 @@ final class AnswerReview {
     private static final Pattern CONTRAST = Pattern.compile("\\b(?:while|whereas|unlike|instead|rather than|in contrast|by contrast|compared with|compared to|the difference is)\\b",Pattern.CASE_INSENSITIVE);
     private static final Pattern META = Pattern.compile("(?i)https?\\s*:|www\\.|\\bsnapshot\\s*:|\\bsource\\s*:");
     private static final Pattern EARLY_CITATION = Pattern.compile("(?i)(?:^|[,;:.]\\s*|\\bwhereas\\s+|\\bwhile\\s+|\\bbut\\s+)\\[\\d+\\]");
+    private static final Pattern CITATION_AFTER_PERIOD = Pattern.compile("([.!?])\\s*(\\[\\d+\\])\\s*[.!?]?");
+    // These words introduce a new causal step. A citation number alone does
+    // not support that step if the supplied passage never states it.
+    private static final Pattern INFERENTIAL_LINK = Pattern.compile(
+        "\\b(?:leading(?: to)?|contribut(?:e|es|ed|ing)(?: to)?|allows?|enabled?|therefore|thus|as a result)\\b",
+        Pattern.CASE_INSENSITIVE);
     final String text;
     final String reason;
 
@@ -25,7 +31,9 @@ final class AnswerReview {
     }
 
     static AnswerReview check(String raw, String evidence, boolean requireComparison) {
-        String answer=raw.trim();
+        // A model often writes "fact. [1].". Keep the same citation on the
+        // same sentence while moving it before the final punctuation.
+        String answer=CITATION_AFTER_PERIOD.matcher(raw.trim()).replaceAll(" $2$1");
         if (META.matcher(answer).find()) return new AnswerReview("","source metadata copied into answer");
         // A model can end at its token cap after several complete sentences.
         // Keep those sentences, but never display the unfinished tail as final.
@@ -67,6 +75,10 @@ final class AnswerReview {
         Matcher ordinals=ORDINALS.matcher(answer);
         while (ordinals.find()) if (!evidence.contains(ordinals.group()))
             return new AnswerReview("","date "+ordinals.group()+" absent from supplied evidence");
+        String lowerEvidence=evidence.toLowerCase(Locale.ROOT);
+        Matcher links=INFERENTIAL_LINK.matcher(answer);
+        while(links.find()) if(!lowerEvidence.contains(links.group().toLowerCase(Locale.ROOT)))
+            return new AnswerReview("","causal link absent from supplied evidence: "+links.group());
         if (requireComparison && !CONTRAST.matcher(answer).find())
             return new AnswerReview("","no direct contrast between the two subjects");
         return new AnswerReview(answer,"");

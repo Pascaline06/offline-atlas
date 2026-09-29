@@ -1,0 +1,31 @@
+# Retrieval development set. One question per line; these are not a blinded benchmark.
+Why is the sky blue?
+Why did the Soviet Union collapse?
+Why did the Roman Empire fall?
+What caused the 2008 financial crisis?
+How do vaccines work?
+How does photosynthesis work?
+Why do earthquakes happen?
+Why do volcanoes erupt?
+How do airplanes fly?
+Why do tides occur?
+How do solar panels generate electricity?
+Why does the Moon have phases?
+What caused World War I?
+Why did the Black Death spread?
+How does climate change affect the planet?
+How does the immune system remember infections?
+How do antibiotics kill bacteria?
+Why do stars shine?
+Why did the Titanic sink?
+How can I travel from Tokyo to Kyoto by train?
+Why did the French Revolution happen?
+Why did the Berlin Wall fall?
+How does a battery store energy?
+How does a computer processor work?
+How do plants absorb water?
+Why does inflation happen?
+Why did dinosaurs go extinct?
+Why do whales migrate?
+Why is the ocean salty?
+How does a wind turbine generate electricity?

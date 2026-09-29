@@ -7,6 +7,7 @@ import android.net.Uri;
 import android.database.Cursor;
 import android.provider.OpenableColumns;
 import android.os.Bundle;
+import android.os.Debug;
 import android.os.SystemClock;
 import android.text.TextUtils;
 import android.view.View;
@@ -27,6 +28,10 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 
 public final class MainActivity extends Activity {
     private AtlasRepository repository;
@@ -36,10 +41,12 @@ public final class MainActivity extends Activity {
     private Button search;
     private Button install;
     private Button modelButton;
+    private Button exportButton;
     private ModelRunner modelRunner;
     private TextView dataStatus;
     private static final int OPEN_PACK=11;
     private static final int OPEN_MODEL=12;
+    private static final int EXPORT_RESULTS=13;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -50,11 +57,19 @@ public final class MainActivity extends Activity {
         search=new Button(this); search.setText("Search offline"); search.setEnabled(false); root.addView(search);
         install=new Button(this); install.setText("Install knowledge pack (ZIP or select all parts)"); install.setEnabled(false); root.addView(install);
         modelButton=new Button(this); modelButton.setText("Select local GGUF model"); root.addView(modelButton);
+        exportButton=new Button(this); exportButton.setText("Export test results");
+        exportButton.setEnabled(evaluationFile().length()>0); root.addView(exportButton);
         ScrollView scroll=new ScrollView(this); output=new LinearLayout(this); output.setOrientation(LinearLayout.VERTICAL); scroll.addView(output);
         root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1)); setContentView(root);
         search.setOnClickListener(view -> runSearch());
         install.setOnClickListener(view -> { Intent picker=new Intent(Intent.ACTION_OPEN_DOCUMENT); picker.setType("*/*"); picker.addCategory(Intent.CATEGORY_OPENABLE); picker.putExtra(Intent.EXTRA_ALLOW_MULTIPLE,true); startActivityForResult(picker,OPEN_PACK); });
         modelButton.setOnClickListener(view -> { Intent picker=new Intent(Intent.ACTION_OPEN_DOCUMENT); picker.setType("*/*"); picker.addCategory(Intent.CATEGORY_OPENABLE); startActivityForResult(picker,OPEN_MODEL); });
+        exportButton.setOnClickListener(view -> {
+            Intent picker=new Intent(Intent.ACTION_CREATE_DOCUMENT);
+            picker.setType("application/json"); picker.addCategory(Intent.CATEGORY_OPENABLE);
+            picker.putExtra(Intent.EXTRA_TITLE,"offline-atlas-evaluation.jsonl");
+            startActivityForResult(picker,EXPORT_RESULTS);
+        });
         worker.execute(() -> { try { repository=new AtlasRepository(this); boolean fixture=repository.containsTestData(); runOnUiThread(() -> { search.setEnabled(true); install.setEnabled(true); dataStatus.setText(fixture ? "Offline · fictional test data — install real pack" : "Offline · imported local evidence"); output.addView(label(fixture ? "Index ready. Install a real data pack before using travel results." : "Local knowledge pack ready.",16)); });
             File saved=new File(getFilesDir(),"offline-model.gguf");
             if (saved.isFile()) {
@@ -67,6 +82,20 @@ public final class MainActivity extends Activity {
     }
     @Override protected void onActivityResult(int request,int result,Intent data) {
         super.onActivityResult(request,result,data);
+        if (request==EXPORT_RESULTS) {
+            if (result==RESULT_OK && data!=null && data.getData()!=null) {
+                Uri destination=data.getData();
+                worker.execute(() -> {
+                    try {
+                        EvaluationLog.export(evaluationFile(),getContentResolver(),destination);
+                        runOnUiThread(() -> output.addView(label("Test results saved to the selected file.",14)));
+                    } catch(Exception error) {
+                        runOnUiThread(() -> output.addView(label("Could not export test results: "+error.getMessage(),14)));
+                    }
+                });
+            }
+            return;
+        }
         if ((request!=OPEN_PACK && request!=OPEN_MODEL) || result!=RESULT_OK || data==null) return;
         Uri uri=data.getData();
         if (request==OPEN_MODEL) { if (uri!=null) importModel(uri); return; }
@@ -148,16 +177,25 @@ public final class MainActivity extends Activity {
                 long searchStart=SystemClock.elapsedRealtime();
                 AtlasRepository.Answer answer=repository.search(question);
                 long retrievalMs=SystemClock.elapsedRealtime()-searchStart;
+                AtomicInteger peakPssKiB=new AtomicInteger(processPssKiB());
                 boolean travelQuestion=question.matches("(?is)(?=.*\\bvegan\\b)(?=.*\\brestaurants?\\b).*");
                 boolean generate=modelRunner!=null && !answer.results.isEmpty() && answer.canGenerate && !travelQuestion
                     && !(ComparisonQuery.parse(question)!=null && answer.quickAnswer==null);
+                boolean comparison=ComparisonQuery.parse(question)!=null;
+                boolean twoSources=answer.results.size()>1 && (comparison || AnswerCompleteness.airplaneQuestion(question)
+                    || AnswerCompleteness.sovietQuestion(question));
+                String citedPassage=generate && answer.quickAnswer==null
+                    ? EvidenceFallback.fromExcerpt(answer.results.get(0).description)
+                        +(twoSources ? "\n\n"+EvidenceFallback.fromExcerpt(answer.results.get(1).description,2) : "") : "";
+                TextView citedText=citedPassage.isEmpty() ? null
+                    : label("Cited local passage:\n"+citedPassage,18);
                 TextView modelText=label("Writing local answer…",18);
                 runOnUiThread(() -> {
                     output.removeAllViews();
                     if (answer.quickAnswer!=null) output.addView(label(answer.quickAnswer,18));
+                    if (citedText!=null) output.addView(citedText);
                     if (generate) { modelText.setText("Model checking the sources…"); output.addView(modelText); }
                     output.addView(label(answer.notice+"\n"+(travelQuestion ? answer.results.size()+" leads · " : "")+"Local retrieval: "+retrievalMs+" ms",16));
-                    if (answer.results.isEmpty() && !travelQuestion) output.addView(label("No matching local evidence found. Try another city or a more specific question.",16));
                     for (AtlasRepository.Result result:answer.results) {
                         if (travelQuestion) { addTravelResult(result); continue; }
                         output.addView(label(result.title,20));
@@ -174,21 +212,44 @@ public final class MainActivity extends Activity {
                 });
                 if (generate) {
                     StringBuilder evidence=new StringBuilder(); int count=0;
-                    int maxSources=ComparisonQuery.parse(question)!=null ? 2 : 1;
+                    int maxSources=twoSources ? 2 : 1;
                     for (AtlasRepository.Result result:answer.results) {
                         if (++count>maxSources) break;
                         evidence.append('[').append(count).append("] ").append(result.title).append(". ")
-                            .append(result.description,0,Math.min(maxSources==2 ? 460 : 620,result.description.length()))
+                            .append(result.description,0,Math.min(maxSources==2 ? 700 : 900,result.description.length()))
                             .append('\n');
                     }
                     String response;
-                    try { response=modelRunner.answer(question,evidence.toString(),partial -> runOnUiThread(() -> modelText.setText("Local model answer (in progress):\n"+partial))); }
+                    AtomicLong firstTextMs=new AtomicLong(-1);
+                    long modelStart=SystemClock.elapsedRealtime();
+                    ScheduledExecutorService sampler=Executors.newSingleThreadScheduledExecutor();
+                    sampler.scheduleAtFixedRate(() -> peakPssKiB.accumulateAndGet(processPssKiB(),Math::max),
+                        0,500,TimeUnit.MILLISECONDS);
+                    try { response=modelRunner.answer(question,evidence.toString(),comparison,partial -> {
+                        if(!partial.isEmpty()) firstTextMs.compareAndSet(-1,SystemClock.elapsedRealtime()-modelStart);
+                        runOnUiThread(() -> modelText.setText("Local model answer (in progress):\n"+partial));
+                    }); }
                     catch (Exception error) { response="Model error: "+(error.getMessage()==null ? error.getClass().getSimpleName() : error.getMessage()); }
+                    finally { sampler.shutdownNow(); peakPssKiB.accumulateAndGet(processPssKiB(),Math::max); }
                     String complete=response;
                     String rejected=modelRunner.rejectedDraft();
+                    boolean accepted=!complete.startsWith("Local model answer rejected")
+                        && !complete.startsWith("Model error:");
+                    String fallback=accepted ? "" : citedPassage;
+                    String displayed=accepted ? complete : fallback.isEmpty() ? complete
+                        : "Cited local passage (model answer not verified):\n"+fallback;
+                    String outcome=accepted ? "accepted" : complete.startsWith("Model error:") ? "error" : "rejected";
+                    long totalMs=SystemClock.elapsedRealtime()-searchStart;
+                    saveEvaluation(true,question,answer,displayed,outcome,
+                        rejected==null ? "" : rejected,retrievalMs,firstTextMs.get(),totalMs,peakPssKiB.get());
                     runOnUiThread(() -> {
-                        if (complete.startsWith("Local model answer rejected")) modelText.setText(complete);
-                        else modelText.setText("Local model answer (verify against evidence):\n"+complete);
+                        if (!accepted && !fallback.isEmpty())
+                            modelText.setText("The model draft could not be verified. The cited local passage above remains available.");
+                        else if (!accepted) modelText.setText(complete);
+                        else {
+                            if(citedText!=null) output.removeView(citedText);
+                            modelText.setText("Local model answer (verify against evidence):\n"+complete);
+                        }
                         if (rejected!=null && !rejected.isEmpty()) {
                             TextView diagnostic=label("Show rejected drafts (unverified)",13);
                             diagnostic.setOnClickListener(view -> diagnostic.setText(diagnostic.getText().length()<80
@@ -196,13 +257,36 @@ public final class MainActivity extends Activity {
                                 : "Show rejected drafts (unverified)"));
                             output.addView(diagnostic,output.indexOfChild(modelText)+1);
                         }
+                        output.addView(label("Answer time: "+totalMs+" ms · First model text: "
+                            +(firstTextMs.get()<0 ? "none" : firstTextMs.get()+" ms")
+                            +" · Sampled memory: "+peakPssKiB.get()/1024+" MiB",13));
                         search.setEnabled(true);
                     });
-                }
+                } else saveEvaluation(false,question,answer,answer.quickAnswer!=null ? answer.quickAnswer : answer.notice,
+                    "not_run","",retrievalMs,-1,SystemClock.elapsedRealtime()-searchStart,peakPssKiB.get());
             } catch (Exception error) {
                 runOnUiThread(() -> { output.removeAllViews(); output.addView(label("Search failed: "+error.getClass().getSimpleName()+": "+error.getMessage(),16)); search.setEnabled(true); });
             }
         });
+    }
+    private File evaluationFile() { return new File(getFilesDir(),"evaluation.jsonl"); }
+    private static int processPssKiB() {
+        Debug.MemoryInfo memory=new Debug.MemoryInfo();
+        Debug.getMemoryInfo(memory);
+        return memory.getTotalPss();
+    }
+    private void saveEvaluation(boolean modelUsed,String question,AtlasRepository.Answer answer,String text,
+                                String modelOutcome,String rejectedDraft,
+                                long retrievalMs,long firstTextMs,long totalMs,int pssKiB) {
+        try {
+            String appVersion=getPackageManager().getPackageInfo(getPackageName(),0).versionName;
+            EvaluationLog.append(evaluationFile(),appVersion,modelUsed,question,answer,text,
+                modelOutcome,rejectedDraft,
+                retrievalMs,firstTextMs,totalMs,pssKiB);
+            runOnUiThread(() -> exportButton.setEnabled(true));
+        } catch(Exception error) {
+            runOnUiThread(() -> output.addView(label("Could not save this test result: "+error.getMessage(),14)));
+        }
     }
     private void addTravelResult(AtlasRepository.Result result) {
         LinearLayout card=new LinearLayout(this);
