@@ -16,11 +16,14 @@ import org.json.JSONObject;
 final class EvaluationLog {
     private EvaluationLog() { }
 
-    static void append(File file,String question,AtlasRepository.Answer answer,String finalText,
-                       long retrievalMs,long firstTextMs,long totalMs,int sampledPeakPssKiB) throws IOException {
+    static void append(File file,String appVersion,boolean modelUsed,String question,
+                       AtlasRepository.Answer answer,String finalText,long retrievalMs,
+                       long firstTextMs,long totalMs,int sampledPeakPssKiB) throws IOException {
         try {
             JSONObject record=new JSONObject();
-            record.put("schema",1);
+            record.put("schema",2);
+            record.put("app_version",appVersion);
+            record.put("model_used",modelUsed);
             record.put("recorded_at_utc",java.time.Instant.now().toString());
             record.put("question",question);
             record.put("answer",finalText);

@@ -107,6 +107,12 @@ public final class ResearchEvidenceCases {
             "How do airplanes fly?");
         assertAccepted("Airplane","Air flows over the wings, which are shaped to create lift.",
             "How do airplanes fly?");
+        String flight="Air flows over the wings, which are shaped to create lift. "
+            +"This shape is called an airfoil. Uses : Transport : Aircraft carry passengers. "
+            +"War : Aircraft bombed Libya in 1911.";
+        String flightExcerpt=ResearchEvidence.excerpt(flight,"How do airplanes fly?",1100);
+        if(flightExcerpt.contains("Transport") || flightExcerpt.contains("Libya"))
+            throw new AssertionError("Unrelated aircraft uses included in mechanism: "+flightExcerpt);
         assertAccepted("Western Roman Empire","The Empire had weak leadership, which caused instability and helped invasions.",
             "Why did the Roman Empire fall?");
         assertAccepted("Financial crisis of 2007–2008",

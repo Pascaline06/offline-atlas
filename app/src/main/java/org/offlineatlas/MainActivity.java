@@ -225,7 +225,7 @@ public final class MainActivity extends Activity {
                     String complete=response;
                     String rejected=modelRunner.rejectedDraft();
                     long totalMs=SystemClock.elapsedRealtime()-searchStart;
-                    saveEvaluation(question,answer,complete,retrievalMs,firstTextMs.get(),totalMs,peakPssKiB.get());
+                    saveEvaluation(true,question,answer,complete,retrievalMs,firstTextMs.get(),totalMs,peakPssKiB.get());
                     runOnUiThread(() -> {
                         if (complete.startsWith("Local model answer rejected") || complete.startsWith("Model error:")) modelText.setText(complete);
                         else modelText.setText("Local model answer (verify against evidence):\n"+complete);
@@ -241,7 +241,7 @@ public final class MainActivity extends Activity {
                             +" · Sampled memory: "+peakPssKiB.get()/1024+" MiB",13));
                         search.setEnabled(true);
                     });
-                } else saveEvaluation(question,answer,answer.quickAnswer!=null ? answer.quickAnswer : answer.notice,
+                } else saveEvaluation(false,question,answer,answer.quickAnswer!=null ? answer.quickAnswer : answer.notice,
                     retrievalMs,-1,SystemClock.elapsedRealtime()-searchStart,peakPssKiB.get());
             } catch (Exception error) {
                 runOnUiThread(() -> { output.removeAllViews(); output.addView(label("Search failed: "+error.getClass().getSimpleName()+": "+error.getMessage(),16)); search.setEnabled(true); });
@@ -254,10 +254,11 @@ public final class MainActivity extends Activity {
         Debug.getMemoryInfo(memory);
         return memory.getTotalPss();
     }
-    private void saveEvaluation(String question,AtlasRepository.Answer answer,String text,
+    private void saveEvaluation(boolean modelUsed,String question,AtlasRepository.Answer answer,String text,
                                 long retrievalMs,long firstTextMs,long totalMs,int pssKiB) {
         try {
-            EvaluationLog.append(evaluationFile(),question,answer,text,
+            String appVersion=getPackageManager().getPackageInfo(getPackageName(),0).versionName;
+            EvaluationLog.append(evaluationFile(),appVersion,modelUsed,question,answer,text,
                 retrievalMs,firstTextMs,totalMs,pssKiB);
             runOnUiThread(() -> exportButton.setEnabled(true));
         } catch(Exception error) {

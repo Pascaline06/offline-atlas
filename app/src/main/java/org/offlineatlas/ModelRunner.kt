@@ -28,7 +28,7 @@ class ModelRunner(context: Context) {
         val state = engine.state.value
         if (state is InferenceEngine.State.Error) throw IllegalStateException("Native inference engine failed to initialize: ${state.exception.javaClass.simpleName}: ${state.exception.message ?: "no detail"}")
         engine.loadModel(path)
-        engine.setSystemPrompt("You answer offline research questions using only numbered evidence. Cite each factual sentence. Explain supported causes or mechanisms clearly. Never invent a source, venue, hours, ranking, or current fact. If the excerpts do not answer the question, say so. Keep answers below 100 words and end with a full stop.")
+        engine.setSystemPrompt("You answer offline research questions using only numbered evidence. Cite each factual sentence. Explain supported causes or mechanisms clearly. Never invent a causal link, public reaction, source, venue, hours, ranking, or current fact. If the excerpts do not answer the question, say so. Keep answers below 100 words and end with a full stop.")
         loaded = true
     }
 
@@ -41,7 +41,7 @@ class ModelRunner(context: Context) {
                 val comparison = evidence.contains("[2]")
                 val instruction = if (comparison)
                     "Compare one shared attribute covered by BOTH excerpts. Write one sentence using 'whereas' or 'while' to state each side of the difference. Place [1] AFTER the fact from excerpt 1 and [2] AFTER the fact from excerpt 2. Do not output URLs, source labels, snapshot dates, or unrelated claims."
-                else "Answer directly in two or three complete sentences. Explain the causal chain or mechanism when the excerpt supports it, without adding background facts. Cite [1] after each factual sentence. Use only the supplied excerpt."
+                else "Answer directly in two or three complete sentences. State only causal steps expressly linked in the excerpt; do not infer public reactions or consequences from adjacent facts. Cite [1] after each factual sentence. Use only the supplied excerpt."
                 val first = generate(question, evidence, instruction, 256, onProgress)
                 mostRecentDraft = first
                 val review = AnswerReview.check(first, evidence, comparison)
@@ -50,7 +50,7 @@ class ModelRunner(context: Context) {
                 onProgress.accept("First draft failed the evidence check (${review.reason}). Retrying once…")
                 val retryInstruction = if (comparison)
                     "Write exactly one sentence in this form: 'Subject A uses X [1], whereas subject B uses Y [2].' Replace X and Y with supported facts about the same attribute. Citations must come AFTER the facts. Do not output URLs, dates, or source labels."
-                else "Write one or two complete factual sentences that answer the question using only the excerpt. Cite [1] after each sentence and finish with a period."
+                else "Write one or two complete factual sentences using only facts explicitly stated in the excerpt. Do not add a causal link or reaction the excerpt does not state. Cite [1] after each sentence and finish with a period."
                 val retry = generate(question, evidence, retryInstruction, 192, onProgress)
                 mostRecentDraft = retry
                 val secondReview = AnswerReview.check(retry, evidence, comparison)

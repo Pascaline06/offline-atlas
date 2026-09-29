@@ -1,5 +1,14 @@
 # Offline Atlas — Android device test build
 
+Version 0.1.27 responds to two exported Samsung S10+ offline answers from
+0.1.26. Both generated complete cited replies, but their final causal steps
+went beyond the cited passages. Answer review now rejects explicit new causal
+links absent from the supplied evidence and retries with stricter instructions.
+The airplane mechanism excerpt stops before unrelated uses and war history.
+Exported test records now include the app version and whether a model was used.
+These guards cannot prove factual entailment; their effect on the phone must be
+checked. This remains a development build, not a bounty submission.
+
 Version 0.1.26 records each on-device search and its displayed answer in a
 private, exportable test file. **Export test results** lets the tester choose
 where to save the JSONL file; the app does not transmit it. Records include

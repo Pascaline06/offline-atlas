@@ -56,3 +56,14 @@ The memory sampler runs every 500 ms during generation, so the value is an
 estimate and may miss a brief peak. Do not mistake the presence of a citation
 for support of every claim. Grade answers against their excerpts and an
 independently researched baseline; keep failures and refusals in the sample.
+
+Two v0.1.26 S10+ exports showed complete answers with citation [1]. The
+airplane query took 41.4 seconds in total (1.9 seconds retrieval, 11.0 seconds
+to first model text); the Soviet-collapse query took 27.5 seconds (6.6 seconds
+retrieval, 8.2 seconds to first text). Sampled process PSS was approximately
+3.1 GiB for both. The airplane answer added an effect of lift beyond the
+excerpt's wording; the Soviet answer added public dissatisfaction and a causal
+link between media exposure and dissolution that the selected excerpt did not
+state. Version 0.1.27 rejects observed unsupported causal connectors and
+narrows irrelevant mechanism context. These two examples are diagnostic, not a
+held-out quality or target-device performance result.

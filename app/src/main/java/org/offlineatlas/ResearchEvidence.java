@@ -242,8 +242,11 @@ final class ResearchEvidence {
         // snapshots may put obsolete fares in the next sentence, so routes
         // use only the matched sentence.
         int following=explanation ? 4 : 1;
-        for(int j=1;!route && j<=following && index+j<sentences.size() && section.length()<650;j++)
-            section.append(' ').append(sentences.get(index+j));
+        for(int j=1;!route && j<=following && index+j<sentences.size() && section.length()<650;j++) {
+            String next=sentences.get(index+j);
+            if(explanation && next.matches("(?is)^(?:uses|transport|war|references|other websites|see also)\\s*:.*")) break;
+            section.append(' ').append(next);
+        }
         return new Passage(section.toString(),best);
     }
 

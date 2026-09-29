@@ -25,6 +25,19 @@ public final class AnswerReviewCases {
             "[1] Solar uses the sun. [2] Wind uses moving air.","citation before its factual claim");
         assertRejected("Solar uses sun energy [1], whereas wind uses moving air [2]. [1] https://example.invalid/solar.",
             "[1] Solar uses the sun. [2] Wind uses moving air.","source metadata copied into answer");
+        String plane="[1] Airplane. When the aircraft travels forwards, air flows over wings shaped to create lift. "
+            +"This shape is called an airfoil.";
+        assertRejected("Air flows over airplane wings shaped to create lift [1]. "
+            +"This lift allows the aircraft to rise and stay in flight [1].",
+            plane,"causal link absent from supplied evidence");
+        String soviet="[1] History of the Soviet Union. Many factors and events combined and finally they "
+            +"resulted in the dissolution of the Soviet Union. Under glasnost, the Communist Party lost control "
+            +"over the media. A free media brought poor housing, pollution and corruption to public notice.";
+        assertRejected("Under glasnost, the Communist Party lost control over the media [1]. "
+            +"Public awareness of these problems contributed to the dissolution of the Soviet Union [1].",
+            soviet,"causal link absent from supplied evidence");
+        assertValid("Many factors resulted in the dissolution of the Soviet Union [1]. "
+            +"Under glasnost, the Communist Party lost control over the media [1].",soviet);
     }
 
     private static void assertValid(String raw,String evidence) {
