@@ -1,6 +1,13 @@
 # Offline Atlas — Android device test build
 
-Version 0.1.33 is a source checkpoint pending device quality validation. The
+Version 0.1.34 is a source checkpoint pending device quality validation. A
+frozen 100-question research and rail-route probe selected 18 passages; manual
+review found 6 directly relevant, 4 partial and 8 wrong, with 82 abstentions.
+This is source retrieval, not generated-answer quality. See
+`docs/UNSEEN-20260929.md`. Do not submit this checkpoint as satisfying the
+quality target.
+
+Version 0.1.33 is an earlier source checkpoint. The
 0.1.29 airplane answer passed citation review but gave only one sentence about
 lift. The pack also contains propulsion and a better lift explanation; the
 current source selects both for this question and requires a two-step answer.

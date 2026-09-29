@@ -148,3 +148,10 @@ evidence. Current source coverage and passage precision fail before model
 generation. A new or substantially expanded corpus, robust source selection,
 then whole-answer grading against a frontier-plus-internet baseline are
 needed. A GrapheneOS-compatible Pixel measurement remains outstanding.
+
+The subsequent frozen 100-question source audit is recorded in
+`docs/UNSEEN-20260929.md`. It selected 18 passages: 6 directly relevant,
+4 partial and 8 wrong on manual excerpt review, while abstaining on 82.
+The exact installed pack contains many matching article titles, so the next
+engineering priority is article discovery and passage precision; new corpus
+material is needed where those articles do not contain an answer.
