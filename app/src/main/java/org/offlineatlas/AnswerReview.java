@@ -16,6 +16,12 @@ final class AnswerReview {
         while(m.find()) sources.put(Integer.parseInt(m.group(1)),m.group(2));
         return sources;
     }
+    private static String numericValue(String value) {
+        value=value.replaceAll("(?:st|nd|rd|th)$","");
+        if(value.matches("\\d{1,3}(?:,\\d{3})+(?:\\.\\d+)?")) value=value.replace(",","");
+        try {return new java.math.BigDecimal(value).stripTrailingZeros().toPlainString();}
+        catch(NumberFormatException invalid) {return value;}
+    }
     static AnswerReview check(String raw,String evidence) {return check(raw,evidence,false);}
     static AnswerReview check(String raw,String evidence,boolean comparison) {
         String answer=AFTER.matcher(raw.trim()).replaceAll(" $2$1");
@@ -50,8 +56,11 @@ final class AnswerReview {
                 }
                 return new AnswerReview("","uncited factual sentence");
             }
+            Set<String> sourceNumbers=new HashSet<>();
+            Matcher supplied=NUMBER.matcher(CITATION.matcher(citedText.toString()).replaceAll(""));
+            while(supplied.find()) sourceNumbers.add(numericValue(supplied.group()));
             Matcher numbers=NUMBER.matcher(CITATION.matcher(sentence).replaceAll(""));
-            while(numbers.find()) if(!citedText.toString().contains(numbers.group()))
+            while(numbers.find()) if(!sourceNumbers.contains(numericValue(numbers.group())))
                 return new AnswerReview("","number absent from cited passage: "+numbers.group());
             kept.append(sentence).append(' ');
         }

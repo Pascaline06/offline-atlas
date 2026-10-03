@@ -4,6 +4,10 @@ public final class AnswerReviewCases {
         String evidence="[1] A mountain site in Peru at 2430m.\n[2] A temple in Cambodia.";
         valid("A site in Peru at 2430m [1]. A temple in Cambodia [2].",evidence);
         invalid("A site in Peru at 1200m [1].",evidence,"number absent");
+        invalid("The sensor operates at 24 volts [1].","[1] The sensor operates at 124 volts.","number absent");
+        valid("The count is 1000 [1].","[1] The count is 1,000.");
+        valid("The value is 1.0 [1].","[1] The value is 1.");
+        valid("It happened on the 12th [1].","[1] It happened on day 12.");
         invalid("A site in Peru [3].",evidence,"citation outside");
         invalid("A site in Peru [1]. This is an uncited factual claim.",evidence,"uncited factual");
         invalid("Stable learned knowledge with an invented reference [1].","","invented citation");
