@@ -22,7 +22,21 @@ def plain_text(body):
                 out.append(body[i])
             i += 1
     body = "".join(out)
-    body = re.sub(r"(?is)\[\[(?:File|Image|Category):.*?\]\](?:[^\n]*?\]\])?", " ", body)
+    # Media options may themselves contain wiki links. Skip the balanced outer
+    # media link, leaving following factual links intact.
+    out=[];i=0
+    while i<len(body):
+        media=re.match(r'(?i)\[\[(?:File|Image|Category):',body[i:i+20])
+        if media:
+            level=1;i+=2
+            while i<len(body) and level:
+                if body.startswith('[[',i): level+=1;i+=2
+                elif body.startswith(']]',i): level-=1;i+=2
+                else: i+=1
+            out.append(' ')
+        else:
+            out.append(body[i]);i+=1
+    body=''.join(out)
     body = re.sub(r"\[\[([^\]]+)\]\]", lambda m: m[1].split("|")[-1], body)
     body = re.sub(r"\[https?://[^\s\]]+\s*([^\]]*)\]", r"\1", body)
     body = re.sub(r"(?is)<[^>]+>", " ", body)

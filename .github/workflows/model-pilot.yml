@@ -9,6 +9,9 @@ on:
       - '.github/workflows/model-pilot.yml'
       - 'tools/model_pilot.py'
   workflow_dispatch:
+concurrency:
+  group: model-pilot-${{ github.event.pull_request.head.ref || github.ref_name }}
+  cancel-in-progress: true
 jobs:
   pilot:
     runs-on: ubuntu-latest

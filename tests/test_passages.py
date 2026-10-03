@@ -54,3 +54,8 @@ class PassageTests(unittest.TestCase):
             build(ROOT/'data/sample_documents.jsonl',ROOT/'data/sample_places.jsonl',path)
             with sqlite3.connect(path) as con:
                 self.assertEqual(self.retriever.retrieve(con,'how does it work?'),[])
+
+    def test_media_link_does_not_remove_following_factual_link(self):
+        text=plain_text('[[File:Planet.png|thumb|The [[Earth]]]] [[Earth|Our planet]] orbits the [[Sun]].')
+        self.assertIn('Our planet orbits the Sun',text)
+        self.assertNotIn('Planet.png',text)
