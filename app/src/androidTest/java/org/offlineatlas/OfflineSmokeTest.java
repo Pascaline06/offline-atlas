@@ -46,7 +46,7 @@ public final class OfflineSmokeTest {
         } finally {getInstrumentation().runOnMainSync(activity::finish);}
     }
     private static Button findSearch(View view) {
-        if(view instanceof Button && ((Button)view).getText().toString().equals("Search offline")) return (Button)view;
+        if(view instanceof Button && ((Button)view).getText().toString().equals("Quick answer")) return (Button)view;
         if(view instanceof ViewGroup) for(int i=0;i<((ViewGroup)view).getChildCount();i++) {
             Button result=findSearch(((ViewGroup)view).getChildAt(i));if(result!=null) return result;
         }

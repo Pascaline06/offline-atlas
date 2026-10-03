@@ -43,6 +43,7 @@ public final class MainActivity extends Activity {
     private EditText input;
     private LinearLayout output;
     private Button search;
+    private Button sourceSearch;
     private Button install;
     private Button modelButton;
     private Button exportButton;
@@ -63,7 +64,8 @@ public final class MainActivity extends Activity {
         dataStatus=label("Offline only · checking local search index",14); root.addView(dataStatus);
         input=new EditText(this); input.setFilters(new InputFilter[]{new InputFilter.LengthFilter(2000)}); input.setSingleLine(false); input.setMinLines(2); input.setHint("Ask a research question, comparison, or explanation"); input.setImeOptions(EditorInfo.IME_ACTION_SEARCH); root.addView(input);
         LinearLayout actions=new LinearLayout(this); actions.setOrientation(LinearLayout.HORIZONTAL); root.addView(actions);
-        search=new Button(this); search.setText("Search offline"); search.setEnabled(false); actions.addView(search,new LinearLayout.LayoutParams(0,-2,1));
+        search=new Button(this); search.setText("Quick answer"); search.setEnabled(false); actions.addView(search,new LinearLayout.LayoutParams(0,-2,1));
+        sourceSearch=new Button(this); sourceSearch.setText("Research sources"); sourceSearch.setEnabled(false); actions.addView(sourceSearch,new LinearLayout.LayoutParams(0,-2,1));
         stop=new Button(this); stop.setText("Stop answer"); stop.setEnabled(false); stop.setVisibility(View.GONE); actions.addView(stop);
         stop.setOnClickListener(view -> {if(modelRunner!=null) modelRunner.cancel(); stop.setEnabled(false);});
         Button settingsToggle=new Button(this); settingsToggle.setText("Assets and settings"); root.addView(settingsToggle);
@@ -77,7 +79,8 @@ public final class MainActivity extends Activity {
         exportButton.setEnabled(evaluationFile().length()>0); settings.addView(exportButton);
         ScrollView scroll=new ScrollView(this); output=new LinearLayout(this); output.setOrientation(LinearLayout.VERTICAL); scroll.addView(output);
         root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1)); setContentView(root);
-        search.setOnClickListener(view -> runSearch());
+        search.setOnClickListener(view -> runSearch(false));
+        sourceSearch.setOnClickListener(view -> runSearch(true));
         install.setOnClickListener(view -> { Intent picker=new Intent(Intent.ACTION_OPEN_DOCUMENT); picker.setType("*/*"); picker.addCategory(Intent.CATEGORY_OPENABLE); picker.putExtra(Intent.EXTRA_ALLOW_MULTIPLE,true); startActivityForResult(picker,OPEN_PACK); });
         modelButton.setOnClickListener(view -> { Intent picker=new Intent(Intent.ACTION_OPEN_DOCUMENT); picker.setType("*/*"); picker.addCategory(Intent.CATEGORY_OPENABLE); startActivityForResult(picker,OPEN_MODEL); });
         exportButton.setOnClickListener(view -> {
@@ -199,7 +202,7 @@ public final class MainActivity extends Activity {
             }
         });
     }
-    private void runSearch() {
+    private void runSearch(boolean preferSources) {
         String question=input.getText().toString().trim(); if (question.isEmpty()) return;
         setBusy(true); output.removeAllViews(); output.addView(label("Searching local index…",16));
         final boolean knowledgeEnabled=knowledge.isChecked();
@@ -211,7 +214,7 @@ public final class MainActivity extends Activity {
                 AtomicInteger peakPssKiB=new AtomicInteger(processPssKiB());
                 boolean travelQuestion=question.matches("(?is)(?=.*\\bvegan\\b)(?=.*\\brestaurants?\\b).*");
                 boolean comparison=ComparisonQuery.parse(question)!=null;
-                boolean grounded=answer.canGenerate && !answer.results.isEmpty() && !repository.containsTestData();
+                boolean grounded=(preferSources || !knowledgeEnabled) && answer.canGenerate && !answer.results.isEmpty() && !repository.containsTestData();
                 boolean fresh=QueryPolicy.needsLiveData(question);
                 boolean generate=modelRunner!=null && modelRunner.isReady() && !travelQuestion && !fresh
                     && (grounded || knowledgeEnabled);
@@ -229,8 +232,12 @@ public final class MainActivity extends Activity {
                     if (answer.quickAnswer!=null) output.addView(label(answer.quickAnswer,18));
                     if (citedText!=null) output.addView(citedText);
                     if(fresh) output.addView(label(QueryPolicy.freshnessNotice(),18));
+                    if(!generate && !fresh && !travelQuestion && (modelRunner==null || !modelRunner.isReady())) {
+                        TextView missing=label("The local model is not ready. Open Assets and settings to install it, or restart the app to reload a saved model. Source excerpts remain available.",16);
+                        missing.setOnClickListener(view -> settings.setVisibility(View.VISIBLE)); output.addView(missing);
+                    }
                     if (generate) { settings.setVisibility(View.GONE); stop.setVisibility(View.VISIBLE); modelText.setText(grounded ? "Writing from offline sources…" : "Answering from local model knowledge; no source citations available…"); output.addView(modelText); stop.setEnabled(true); }
-                    output.addView(label(answer.notice+"\n"+(travelQuestion ? answer.results.size()+" leads · " : "")+"Local retrieval: "+retrievalMs+" ms",16));
+                    output.addView(label((generate && !grounded ? "Retrieved passages below are for manual cross-checking; the quick answer uses local model knowledge.\n" : "")+answer.notice+"\n"+(travelQuestion ? answer.results.size()+" leads · " : "")+"Local retrieval: "+retrievalMs+" ms",16));
                     int sourceNumber=0;
                     for (AtlasRepository.Result result:answer.results) {
                         if (travelQuestion) { addTravelResult(result); continue; }
@@ -385,6 +392,7 @@ public final class MainActivity extends Activity {
     private TextView label(String text,int size) { TextView view=new TextView(this); view.setText(text); view.setTextSize(size); view.setPadding(0,8,0,8); return view; }
     private void setBusy(boolean busy) {
         search.setEnabled(!busy && repository!=null);
+        sourceSearch.setEnabled(!busy && repository!=null);
         install.setEnabled(!busy && repository!=null);
         modelButton.setEnabled(!busy && repository!=null);
         knowledge.setEnabled(!busy);input.setEnabled(!busy);

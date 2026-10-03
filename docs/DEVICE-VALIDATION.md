@@ -23,10 +23,11 @@ While an answer is generating, tap Stop; immediately ask another question. Repea
 An independent person should supply at least 100 questions and freeze the file/hash before testing. Include factual recall, explanations, comparisons, synthesis, multi-step reasoning, unfamiliar topics, misleading premises and current-information requests. Existing repository question sets have been used during development; they are not a fresh held-out set.
 
 ```sh
-python3 tools/device_benchmark.py independent-questions.txt evidence/pixel-run
+python3 tools/device_benchmark.py independent-questions.txt evidence/pixel-quick
+python3 tools/device_benchmark.py independent-questions.txt evidence/pixel-sources --source-mode
 ```
 
-The tool drives the actual Android UI via USB and saves complete private JSONL observations. Keep failures and refusals. Do not edit answers, retry selectively, or substitute desktop answers. Inspect instrumentation output and every recorded question. The signed preview is a debug build so `adb run-as` can read its private test log; normal app use needs no adb.
+Choose the mode before testing and report each complete run separately; never choose the better answer per question after testing. The tool drives the actual Android UI via USB and saves complete private JSONL observations. Keep failures and refusals. Do not edit answers, retry selectively, or substitute desktop answers. Inspect instrumentation output and every recorded question. The signed preview is a debug build so `adb run-as` can read its private test log; normal app use needs no adb.
 
 ## Resource and speed evidence
 
