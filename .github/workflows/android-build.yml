@@ -2,6 +2,9 @@ name: Android debug APK
 on:
   push:
   workflow_dispatch:
+concurrency:
+  group: android-build-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -74,4 +77,9 @@ jobs:
           cp app/build/outputs/apk/debug/app-debug.apk offline-atlas-0.2.0.apk
           cp app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk offline-atlas-0.2.0-tests.apk
           sha256sum offline-atlas-0.2.0*.apk > APK-SHA256SUMS
+          CURRENT_HEAD=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/codex/offline-atlas-completion" --jq '.object.sha')
+          if [ "$CURRENT_HEAD" != "$GITHUB_SHA" ]; then
+            echo 'A newer code revision exists; leave this APK as a CI artifact and publish the newer build.'
+            exit 0
+          fi
           gh release create "v0.2.0-preview.${GITHUB_RUN_NUMBER}" --target "$GITHUB_SHA" --prerelease --title 'Offline Atlas 0.2 phone-validation preview' --notes 'Signed arm64 Android preview. Install knowledge pack and the supported model separately. No Internet permission or Play Services dependency. Current real-device, latency, memory and independent whole-answer quality gates remain open; this release is not a bounty claim. README and docs/DEVICE-VALIDATION.md describe installation and validation.' offline-atlas-0.2.0.apk offline-atlas-0.2.0-tests.apk APK-SHA256SUMS permissions.txt signing.txt
