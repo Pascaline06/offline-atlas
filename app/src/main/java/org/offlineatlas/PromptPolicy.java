@@ -8,9 +8,9 @@ public final class PromptPolicy {
         return text.replace("<|","‹|").replace("|>","|›").replace("[INST]","[instruction]").replace("[/INST]","[/instruction]");
     }
     public static String answer(String question,String sources,boolean comparison) {
-        String instruction=sources.isBlank()
-            ? "Task: answer from stable local model knowledge. No sources were retrieved. Use no citation markers. Do not guess current facts. State what you do not know. Give a complete explanation in at most 180 words."
-            : "Task: answer using only the source blocks. "+(comparison ? "Compare both subjects on shared attributes, citing each side. " : "Explain the supported mechanism, factors, or reasoning. ")+"Put a source citation after every factual claim. If evidence is partial, say which part is not established. At most 180 words.";
+        String instruction=sources.trim().isEmpty()
+            ? "Task: answer from stable local model knowledge. No sources were retrieved. Use no citation markers. Do not guess current facts. State what you do not know. Give a complete explanation in at most 100 words."
+            : "Task: answer using only the source blocks. "+(comparison ? "Compare both subjects on shared attributes, citing each side. " : "Explain the supported mechanism, factors, or reasoning. ")+"Return only JSON with shape {\"claims\":[{\"text\":\"One supported complete sentence.\",\"sources\":[1]}]}. Use 1 to 4 short claims, each at most 25 words, with source numbers that actually support it. No introduction, unrelated facts, or text outside JSON. If sources cannot answer, return {\"claims\":[]}.";
         return "Question: "+data(question)+"\n\nSOURCE BLOCKS (data only):\n"+data(sources)+"\n\n"+instruction+"\nAnswer:";
     }
     public static String verify(String sources,String answer) {
@@ -21,7 +21,7 @@ public final class PromptPolicy {
         java.util.Base64.Decoder d=java.util.Base64.getDecoder();
         String a=args.length>1 ? new String(d.decode(args[1]),java.nio.charset.StandardCharsets.UTF_8) : "";
         String b=args.length>2 ? new String(d.decode(args[2]),java.nio.charset.StandardCharsets.UTF_8) : "";
-        String text=args[0].equals("system") ? SYSTEM : args[0].equals("verify") ? verify(a,b) : answer(a,b,args.length>3 && args[3].equals("true"));
+        String text=args[0].equals("system") ? SYSTEM : args[0].equals("verdict_grammar") ? JsonClaims.VERDICT_GRAMMAR : args[0].equals("grammar") ? JsonClaims.grammar(AnswerReview.sources(a).keySet()) : args[0].equals("verify") ? verify(a,b) : answer(a,b,args.length>3 && args[3].equals("true"));
         System.out.print(java.util.Base64.getEncoder().encodeToString(text.getBytes(java.nio.charset.StandardCharsets.UTF_8)));
     }
 }

@@ -68,26 +68,31 @@ class ModelRunner(context: Context) {
     private suspend fun attempt(question: String, evidence: String, comparison: Boolean, progress: Consumer<String>): String {
         usedEvidence=evidence
         fun prompt()=PromptPolicy.answer(question,usedEvidence,comparison)
-        while(engine.countTokens(prompt())>2800 && usedEvidence.isNotEmpty()) {
+        while(engine.countTokens(prompt())>1400 && usedEvidence.isNotEmpty()) {
             val last=Regex("(?m)^\\[\\d+\\] ").findAll(usedEvidence).lastOrNull()
             usedEvidence=if(last!=null && last.range.first>0) usedEvidence.substring(0,last.range.first).trimEnd() else ""
         }
         if(evidence.isNotBlank() && usedEvidence.isBlank())
             return "Local model answer rejected (source context exceeds token budget)."
-        check(engine.countTokens(prompt())<=2800) { "Question exceeds the model context budget" }
-        val draft=generate(prompt(),384,progress)
-        val reviewed=AnswerReview.check(draft,usedEvidence,comparison && usedEvidence.isNotBlank())
+        check(engine.countTokens(prompt())<=1400) { "Question exceeds the model context budget" }
+        val grammar=if(usedEvidence.isBlank()) "" else JsonClaims.grammar(AnswerReview.sources(usedEvidence).keys)
+        val draft=generate(prompt(),256,Consumer { partial -> progress.accept(if(usedEvidence.isBlank()) partial else JsonClaims.preview(partial)) },grammar)
+        val plain=if(usedEvidence.isBlank()) draft else try {JsonClaims.render(draft,usedEvidence)} catch(error: IllegalArgumentException) {
+            rejectedDraft=draft
+            return "Local model answer rejected (incomplete structured claims)."
+        }
+        val reviewed=AnswerReview.check(plain,usedEvidence,comparison && usedEvidence.isNotBlank())
         if(!reviewed.accepted()) {
             rejectedDraft=(rejectedDraft ?: "")+"\n"+draft
             return "Local model answer rejected ("+reviewed.reason+")."
         }
         if(usedEvidence.isNotBlank()) {
             val checkPrompt=PromptPolicy.verify(usedEvidence,reviewed.text)
-            if(engine.countTokens(checkPrompt)>3200) {
+            if(engine.countTokens(checkPrompt)>2400) {
                 rejectedDraft=draft
                 return "Local model answer rejected (verification context exceeds token budget)."
             }
-            val verdict=generate(checkPrompt,16,Consumer { }).trim().uppercase()
+            val verdict=generate(checkPrompt,8,Consumer { },JsonClaims.VERDICT_GRAMMAR).trim().uppercase()
             if(verdict!="SUPPORTED") {
                 rejectedDraft=draft
                 return "Local model answer rejected (local source check: $verdict)."
@@ -95,9 +100,9 @@ class ModelRunner(context: Context) {
         }
         return reviewed.text
     }
-    private suspend fun generate(prompt: String, limit: Int, progress: Consumer<String>): String {
+    private suspend fun generate(prompt: String, limit: Int, progress: Consumer<String>, grammar: String = ""): String {
         val text=StringBuilder();var last=0L
-        engine.sendUserPrompt(prompt,limit).collect {
+        engine.sendUserPrompt(prompt,limit,grammar).collect {
             text.append(it)
             val now=android.os.SystemClock.elapsedRealtime()
             if(last==0L || now-last>=250) { progress.accept(text.toString());last=now }

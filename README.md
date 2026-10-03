@@ -17,7 +17,7 @@ The preparation pack contains **393,457 articles and 831,678 passages**, capture
 
 ## Research behavior
 
-The app ranks overlapping passages using SQLite FTS4 and BM25, retrieves both sides of recognized comparisons, and sends up to four passages with numbered citations to the local model. It checks answer structure and cited numbers, then asks the local model to check claim support. The local check can be wrong; source excerpts remain available for human inspection.
+The app ranks overlapping passages using SQLite FTS4 and BM25, retrieves both sides of recognized comparisons, and sends up to four passages with numbered citations to the local model. Grounded output binds claims to valid source IDs through a decoding grammar. It checks answer structure and cited numbers, then asks the local model to check claim support. The local check can be wrong; source excerpts remain available for human inspection.
 
 The **Allow answers from local model knowledge without source support** switch permits stable learned-knowledge answers when evidence is missing, incomplete, or a source attempt fails. These answers are explicitly labeled and have no source citations. Disable it for source-only use. The app refuses recognized requests for live information, and never treats old venue records as verified current hours or menus.
 

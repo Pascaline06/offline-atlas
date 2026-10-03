@@ -28,7 +28,7 @@ interface InferenceEngine {
     /**
      * Sends a user prompt to the loaded model and returns a Flow of generated tokens.
      */
-    fun sendUserPrompt(message: String, predictLength: Int = DEFAULT_PREDICT_LENGTH): Flow<String>
+    fun sendUserPrompt(message: String, predictLength: Int = DEFAULT_PREDICT_LENGTH, grammar: String = ""): Flow<String>
 
     /**
      * Runs a benchmark with the specified parameters.

@@ -32,7 +32,7 @@ jobs:
           printf '%s  %s\n' '3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597' "$RUNNER_TEMP/model.gguf" | sha256sum -c -
       - name: Run eight frozen model-only questions
         run: python3 tools/model_pilot.py "$RUNNER_TEMP/model.gguf" "$PWD/build/model-pilot/bin/llama" model-pilot.jsonl
-      - name: Exercise shared Android source-check prompts
+      - name: Exercise grammar-constrained shared Android source-check prompts
         run: python3 tools/source_check_pilot.py "$RUNNER_TEMP/model.gguf" "$PWD/build/model-pilot/bin/llama" source-check-pilot.jsonl
       - uses: actions/upload-artifact@v4
         if: always()

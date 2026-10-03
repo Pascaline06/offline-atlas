@@ -1,4 +1,4 @@
-name: Development whole-answer probe
+name: Constrained development whole-answer probe
 on:
   push:
     paths:

@@ -119,9 +119,10 @@ static llama_context *init_context(llama_model *model, const int n_ctx = DEFAULT
     return context;
 }
 
-static common_sampler *new_sampler(float temp) {
+static common_sampler *new_sampler(float temp,const std::string &grammar = "") {
     common_params_sampling sparams;
     sparams.temp = temp;
+    if(!grammar.empty()) sparams.grammar=common_grammar(COMMON_GRAMMAR_TYPE_USER,grammar);
     return common_sampler_init(g_model, sparams);
 }
 
@@ -604,4 +605,14 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_tokenCount(JNIEnv *env, jobject
 extern "C" JNIEXPORT void JNICALL
 Java_com_arm_aichat_internal_InferenceEngineImpl_signalStop(JNIEnv *, jobject, jboolean stop) {
     g_stop.store(stop);
+}
+
+extern "C" JNIEXPORT jint JNICALL
+Java_com_arm_aichat_internal_InferenceEngineImpl_setGrammar(JNIEnv *env,jobject,jstring grammar) {
+    if(!g_model) return 1;
+    auto *replacement=new_sampler(DEFAULT_SAMPLER_TEMP,java_utf8(env,grammar));
+    if(!replacement) return 2;
+    if(g_sampler) common_sampler_free(g_sampler);
+    g_sampler=replacement;
+    return 0;
 }

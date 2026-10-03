@@ -112,6 +112,8 @@ internal class InferenceEngineImpl private constructor(
 
     private external fun tokenCount(text: String): Int
 
+    private external fun setGrammar(grammar: String): Int
+
     private external fun signalStop(stop: Boolean)
 
     private val _state =
@@ -237,6 +239,7 @@ internal class InferenceEngineImpl private constructor(
     override fun sendUserPrompt(
         message: String,
         predictLength: Int,
+        grammar: String,
     ): Flow<String> = flow {
         require(message.isNotEmpty()) { "User prompt discarded due to being empty!" }
         check(_state.value is InferenceEngine.State.ModelReady) {
@@ -247,6 +250,7 @@ internal class InferenceEngineImpl private constructor(
             kotlinx.coroutines.currentCoroutineContext().ensureActive()
             _cancelGeneration = false
             signalStop(false)
+            check(setGrammar(grammar)==0) { "Cannot initialize constrained sampler" }
             Log.i(TAG, "Sending user prompt...")
             _readyForSystemPrompt = false
             _state.value = InferenceEngine.State.ProcessingUserPrompt
