@@ -38,7 +38,8 @@ import java.util.concurrent.atomic.AtomicLong;
 
 public final class MainActivity extends Activity {
     private AtlasRepository repository;
-    private final ExecutorService worker=Executors.newSingleThreadExecutor();
+    // Process-wide ordering prevents old activity cleanup racing a new JNI session.
+    private static final ExecutorService worker=Executors.newSingleThreadExecutor();
     private EditText input;
     private LinearLayout output;
     private Button search;
@@ -56,9 +57,6 @@ public final class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
-        // Imports can leave staging files after process death; never retain them indefinitely.
-        new File(getFilesDir(),"incoming-atlas.db").delete();
-        new File(getFilesDir(),"incoming-model.gguf").delete();
         LinearLayout root=new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setPadding(22,24,22,12);
         TextView heading=label("Offline Atlas",26); root.addView(heading);
         dataStatus=label("Offline only · checking local search index",14); root.addView(dataStatus);
@@ -84,12 +82,15 @@ public final class MainActivity extends Activity {
             startActivityForResult(picker,EXPORT_RESULTS);
         });
         setBusy(true);
-        worker.execute(() -> { try { repository=new AtlasRepository(this); boolean fixture=repository.containsTestData(); ui(() -> { dataStatus.setText(fixture ? "Offline · fictional test data — install real pack" : "Offline · imported local evidence"); output.addView(label(fixture ? "Index ready. Install a real data pack before using travel results." : "Local knowledge pack ready.",16)); });
+        worker.execute(() -> { try {
+            new File(getFilesDir(),"incoming-atlas.db").delete();
+            new File(getFilesDir(),"incoming-model.gguf").delete();
+            repository=new AtlasRepository(this); boolean fixture=repository.containsTestData(); ui(() -> { dataStatus.setText(fixture ? "Offline · fictional test data — install real pack" : "Offline · imported local evidence"); output.addView(label(fixture ? "Index ready. Install a real data pack before using travel results." : "Local knowledge pack ready.",16)); });
             File saved=new File(getFilesDir(),"offline-model.gguf");
             AssetSwap.recover(saved);
             if (saved.isFile()) {
                 try {
-                    if(saved.length()!=2497281120L) throw new IllegalArgumentException("Saved model is not the supported 4B profile; select the published model file");
+                    verifySavedModel(saved);
                     modelRunner=new ModelRunner(this); modelRunner.load(saved.getAbsolutePath());
                     ui(() -> output.addView(label("Saved local model ready.",16)));
                 } catch (Exception error) { ui(() -> output.addView(label("Saved model did not load: "+error.getMessage(),16))); }
@@ -182,7 +183,8 @@ public final class MainActivity extends Activity {
                 modelRunner.load(incoming.getAbsolutePath());
                 File installed=new File(getFilesDir(),"offline-model.gguf");
                 AssetSwap.install(incoming,installed);
-                ui(() -> { output.removeAllViews(); output.addView(label((verified ? "Recommended model checksum verified. " : "Custom model loaded. ")+"Ask a research question.",16)); setBusy(false); });
+                rememberVerifiedModel(installed);
+                ui(() -> { output.removeAllViews(); output.addView(label("Recommended model checksum verified. "+"Ask a research question.",16)); setBusy(false); });
             } catch (Exception error) {
                 incoming.delete();
                 File previous=new File(getFilesDir(),"offline-model.gguf");
@@ -289,12 +291,31 @@ public final class MainActivity extends Activity {
                             +" · Sampled memory: "+peakPssKiB.get()/1024+" MiB",13));
                         setBusy(false);
                     });
-                } else saveEvaluation(false,question,answer,answer.quickAnswer!=null ? answer.quickAnswer : answer.notice,
+                } else saveEvaluation(false,question,answer,fresh ? QueryPolicy.freshnessNotice() : answer.quickAnswer!=null ? answer.quickAnswer : citedPassage.isEmpty() ? answer.notice : citedPassage,
                     "not_run","",retrievalMs,-1,SystemClock.elapsedRealtime()-searchStart,peakPssKiB.get());
             } catch (Exception error) {
                 ui(() -> { output.removeAllViews(); output.addView(label("Search failed: "+error.getClass().getSimpleName()+": "+error.getMessage(),16)); setBusy(false); });
             }
         });
+    }
+    private void rememberVerifiedModel(File file) {
+        getPreferences(0).edit().putLong("verified_model_size",file.length())
+            .putLong("verified_model_mtime",file.lastModified()).apply();
+    }
+    private void verifySavedModel(File file) throws Exception {
+        if(file.length()!=2497281120L) throw new IllegalArgumentException("Saved model is not the supported 4B profile");
+        if(getPreferences(0).getLong("verified_model_size",-1)==file.length()
+            && getPreferences(0).getLong("verified_model_mtime",-1)==file.lastModified()) return;
+        MessageDigest digest=MessageDigest.getInstance("SHA-256");
+        try(InputStream stream=new java.io.FileInputStream(file)) {
+            byte[] bytes=new byte[1024*1024];int count;
+            while((count=stream.read(bytes))!=-1) digest.update(bytes,0,count);
+        }
+        StringBuilder hash=new StringBuilder();
+        for(byte value:digest.digest()) hash.append(String.format(java.util.Locale.ROOT,"%02x",value & 255));
+        if(!hash.toString().equals("3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597"))
+            throw new IllegalArgumentException("Saved model checksum mismatch; install the published model again");
+        rememberVerifiedModel(file);
     }
     private File evaluationFile() { return new File(getFilesDir(),"evaluation.jsonl"); }
     private static int processPssKiB() {
@@ -309,7 +330,10 @@ public final class MainActivity extends Activity {
             String appVersion=getPackageManager().getPackageInfo(getPackageName(),0).versionName;
             EvaluationLog.append(evaluationFile(),appVersion,modelUsed,question,answer,text,
                 modelOutcome,rejectedDraft,
-                retrievalMs,firstTextMs,totalMs,pssKiB);
+                retrievalMs,firstTextMs,totalMs,pssKiB,
+                modelUsed && modelRunner!=null ? modelRunner.evidenceUsed() : "",
+                AssetBudget.bytes(getFilesDir())+AssetBudget.bytes(getCacheDir())+new File(getApplicationInfo().sourceDir).length()+AssetBudget.bytes(new File(getApplicationInfo().nativeLibraryDir)),
+                repository==null ? 0 : repository.packSize());
             ui(() -> exportButton.setEnabled(true));
         } catch(Exception error) {
             ui(() -> output.addView(label("Could not save this test result: "+error.getMessage(),14)));
@@ -368,6 +392,6 @@ public final class MainActivity extends Activity {
         destroyed=true;
         if(modelRunner!=null) modelRunner.cancel();
         worker.execute(() -> {if(modelRunner!=null) modelRunner.close();if(repository!=null) repository.close();});
-        worker.shutdown();super.onDestroy();
+        super.onDestroy();
     }
 }

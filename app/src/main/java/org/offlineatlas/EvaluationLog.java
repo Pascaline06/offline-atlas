@@ -19,10 +19,21 @@ final class EvaluationLog {
     static void append(File file,String appVersion,boolean modelUsed,String question,
                        AtlasRepository.Answer answer,String finalText,String modelOutcome,
                        String rejectedDraft,long retrievalMs,
-                       long firstTextMs,long totalMs,int sampledPeakPssKiB) throws IOException {
+                       long firstTextMs,long totalMs,int sampledPeakPssKiB,
+                       String modelContext,long installedBytes,long packBytes) throws IOException {
         try {
             JSONObject record=new JSONObject();
             record.put("schema",4);
+            record.put("model_context",modelContext);
+            record.put("installed_app_assets_bytes",installedBytes);
+            record.put("pack_bytes",packBytes);
+            record.put("declared_network_mode","no_internet_permission");
+            // Network permission is build evidence; airplane-mode proof must be recorded separately.
+            try {
+                String memory=new String(java.nio.file.Files.readAllBytes(java.nio.file.Paths.get("/proc/meminfo")),StandardCharsets.UTF_8);
+                java.util.regex.Matcher total=java.util.regex.Pattern.compile("(?m)^MemTotal:\\s+(\\d+) kB").matcher(memory);
+                if(total.find()) record.put("device_ram_bytes",Long.parseLong(total.group(1))*1024);
+            } catch(Exception ignored) { }
             record.put("device_model",android.os.Build.MODEL);
             record.put("device_manufacturer",android.os.Build.MANUFACTURER);
             record.put("android_sdk",android.os.Build.VERSION.SDK_INT);

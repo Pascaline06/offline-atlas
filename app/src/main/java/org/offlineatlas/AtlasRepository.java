@@ -59,16 +59,23 @@ final class AtlasRepository implements AutoCloseable {
             } catch (Exception error) { temp.delete(); throw error; }
             if (!temp.renameTo(file)) throw new IllegalStateException("Cannot install local index");
         }
-        database=openAndValidate(file);
+        boolean checked=context.getSharedPreferences("index_validation",0).getLong("size",-1)==file.length()
+            && context.getSharedPreferences("index_validation",0).getLong("mtime",-1)==file.lastModified();
+        database=openAndValidate(file,!checked);
+        rememberValidation();
     }
 
-    private static SQLiteDatabase openAndValidate(File path) {
+    private void rememberValidation() {
+        context.getSharedPreferences("index_validation",0).edit().putLong("size",file.length()).putLong("mtime",file.lastModified()).apply();
+    }
+    private static SQLiteDatabase openAndValidate(File path) {return openAndValidate(path,true);}
+    private static SQLiteDatabase openAndValidate(File path,boolean integrity) {
         SQLiteDatabase db=SQLiteDatabase.openDatabase(path.getPath(),null,SQLiteDatabase.OPEN_READWRITE);
         try {
             try (Cursor c=db.rawQuery("PRAGMA user_version",null)) {
                 if (!c.moveToFirst() || (c.getInt(0)<3 || c.getInt(0)>5)) throw new IllegalStateException("Unsupported index version");
             }
-            try (Cursor c=db.rawQuery("PRAGMA quick_check",null)) {
+            if(integrity) try (Cursor c=db.rawQuery("PRAGMA quick_check",null)) {
                 if (!c.moveToFirst() || !"ok".equals(c.getString(0))) throw new IllegalStateException("Index is corrupt");
             }
             try (Cursor c=db.rawQuery("SELECT id,title,body,source,source_date,license FROM documents LIMIT 0",null)) { }
@@ -146,7 +153,8 @@ final class AtlasRepository implements AutoCloseable {
                 database.close();
                 try {AssetSwap.install(temp,file);} catch(Exception failure) {database=openAndValidate(file);throw failure;}
                 testData=null;
-                database=openAndValidate(file);
+                database=openAndValidate(file,false);
+                rememberValidation();
                 return count;
             }
         } finally { temp.delete(); }
