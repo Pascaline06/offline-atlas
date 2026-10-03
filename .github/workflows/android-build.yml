@@ -46,7 +46,7 @@ jobs:
           ATLAS_PREVIEW_KEY_PASSWORD: ${{ secrets.ATLAS_PREVIEW_KEY_PASSWORD }}
         run: |
           python3 tools/check.py
-          ./gradlew --no-daemon :app:assembleDebug :app:assembleDebugAndroidTest
+          ./gradlew --no-daemon :llama-lib:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidTest
           unzip -Z1 app/build/outputs/apk/debug/app-debug.apk | grep -qx 'assets/atlas.db'
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump permissions app/build/outputs/apk/debug/app-debug.apk | tee permissions.txt
           if grep -q 'android.permission.INTERNET' permissions.txt; then exit 1; fi

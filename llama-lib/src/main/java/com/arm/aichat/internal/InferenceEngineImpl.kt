@@ -251,11 +251,12 @@ internal class InferenceEngineImpl private constructor(
             _cancelGeneration = false
             signalStop(false)
             check(setGrammar(grammar)==0) { "Cannot initialize constrained sampler" }
+            kotlinx.coroutines.currentCoroutineContext().ensureActive()
             Log.i(TAG, "Sending user prompt...")
             _readyForSystemPrompt = false
             _state.value = InferenceEngine.State.ProcessingUserPrompt
 
-            processUserPrompt(message, predictLength).let { result ->
+            nativeOperation({requestStop()}) {processUserPrompt(message,predictLength)}.let { result ->
                 kotlinx.coroutines.currentCoroutineContext().ensureActive()
                 if (_cancelGeneration) throw CancellationException("Generation cancelled")
                 if (result != 0) {
