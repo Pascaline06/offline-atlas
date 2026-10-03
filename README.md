@@ -1,5 +1,76 @@
 # Offline Atlas — Android device test build
 
+Version 0.1.34 is a source checkpoint pending device quality validation. A
+frozen 100-question research and rail-route probe selected 18 passages; manual
+review found 6 directly relevant, 4 partial and 8 wrong, with 82 abstentions.
+This is source retrieval, not generated-answer quality. See
+`docs/UNSEEN-20260929.md`. Do not submit this checkpoint as satisfying the
+quality target.
+
+Version 0.1.33 is an earlier source checkpoint. The
+0.1.29 airplane answer passed citation review but gave only one sentence about
+lift. The pack also contains propulsion and a better lift explanation; the
+current source selects both for this question and requires a two-step answer.
+The Soviet-collapse source now includes the pack's economic and republic
+passages as well as the selected glasnost passage. The 100-question development
+probe selects passages for 45 of 100 tuned questions after rejecting several
+false matches. A frozen 50-question research and rail-route set selected only
+6 passages, of which just 3 appear directly useful on manual excerpt review.
+No whole-answer or frontier-plus-internet comparison has been run. This is not
+a submission-quality release; see `docs/EVAL.md` for the audit.
+
+Version 0.1.29 fixes the exact citation-formatting failure exported from the
+Samsung S10+ in 0.1.28: the model wrote a supported airplane sentence followed
+by `. [1].`, which the reviewer treated as an uncited sentence. The reviewer
+now moves that same citation before the sentence's final punctuation and
+checks the result normally. A regression case uses the device's actual draft
+and source passage. For questions with a covered article, the app shows a
+short cited extract immediately while the model works; it replaces that extract
+only when the model response passes review. The extract is labeled as a source
+passage, not a synthesized answer. Android compilation and regression tests
+cannot by themselves certify model behavior across other questions.
+
+Version 0.1.28 follows the Samsung S10+ v0.1.27 exports: two airplane model
+attempts generated text but both failed the uncited-introduction check; the
+Soviet answer passed on a retry yet remained a limited source recital. The
+model prompt now asks for an immediate cited fact without an introduction.
+If model review still fails, the app displays a clearly labeled extract of
+the selected local source instead of leaving only an error. Test exports
+include the rejection outcome and unverified draft text for diagnosis. An
+extract is not a complete model answer. This remains a preview, not a bounty
+submission.
+
+Version 0.1.27 responds to two exported Samsung S10+ offline answers from
+0.1.26. Both generated complete cited replies, but their final causal steps
+went beyond the cited passages. Answer review now rejects explicit new causal
+links absent from the supplied evidence and retries with stricter instructions.
+The airplane mechanism excerpt stops before unrelated uses and war history.
+Exported test records now include the app version and whether a model was used.
+These guards cannot prove factual entailment; their effect on the phone must be
+checked. This remains a development build, not a bounty submission.
+
+Version 0.1.26 records each on-device search and its displayed answer in a
+private, exportable test file. **Export test results** lets the tester choose
+where to save the JSONL file; the app does not transmit it. Records include
+the question, cited excerpts, source dates, retrieval and answer time, time to
+first model text, and a sampled process memory maximum. These measurements
+make a device assessment reviewable; sampled memory can miss a short peak.
+For supported explanations, the model receives a longer selected passage and
+is asked for a concise two- or three-sentence answer with citations. This
+prompt change needs on-device factual and latency validation. Version 0.1.26
+remains a preview and should not be submitted as a bounty claim.
+
+Version 0.1.25 adds a reproducible 100-question development probe against the
+2.4 GB knowledge pack. It improves cause and mechanism passage selection and
+rejects several false matches: a consequence of the Berlin Wall's fall as its
+cause, World War III for World War I, a route in the opposite direction, movie
+titles, and travel pages that are not the destination. The probe reports
+retrieval coverage and excerpts, not model answer correctness. See
+`docs/EVAL.md` for how to run it and the remaining submission gates. This
+version is still a preview, not a bounty-ready claim.
+
+Version 0.1.24 is a retrieval preview. A desktop probe of 30 exploratory questions against the installed knowledge pack found that the previous broad FTS ordering missed general articles and sometimes accepted unrelated pages. The candidate query now considers exact one-word titles, recognizes common plural subjects, and requires stronger subject matching for explanatory questions. Route queries anchor on their origin and destination rather than generic words such as travel and train. The probe now selects the general Vaccine, Earthquake, and Tide articles, retrieves the Tokyo-to-Kyoto Shinkansen passage, and rejects the observed No fly list and Word processor mismatches. This is not a held-out quality score or a phone validation of this version. Some queries still abstain despite relevant articles; other historical causal matches remain too broad. Do not use it as a bounty claim.
+
 **Status:** Running code and a real data pack are being validated. This is not yet a bounty claim: source-grounded answer quality, speed and peak memory on real Android and compatible Pixel hardware remain unmeasured, and the corpus does not reliably cover specialized vegan queries in every city.
 
 ## Install on a phone

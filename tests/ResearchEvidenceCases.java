@@ -13,6 +13,19 @@ public final class ResearchEvidenceCases {
         if(!selected.contains("Shinkansen") || selected.contains("¥14170")) throw new AssertionError(selected);
         if(!ResearchEvidence.sufficientlyCovered("Kyoto",selected,"How do I get from Tokyo to Kyoto?"))
             throw new AssertionError("Sourced route withheld");
+        if(!ResearchEvidence.sufficientlyCovered("Florence",
+            "By train: Frequent direct trains connect Florence with Rome.",
+            "How can I travel from Rome to Florence by train?"))
+            throw new AssertionError("Direct train service is bidirectional");
+        if(!ResearchEvidence.sufficientlyCovered("Busan", "KTX trains connect Seoul to Busan via Daegu.",
+            "How can I travel from Seoul to Busan by train?"))
+            throw new AssertionError("Plural trains excluded from rail route");
+        String trainQuestion="How can I travel from Tokyo to Kyoto by train?";
+        if(!ResearchEvidence.terms(trainQuestion).toString().equals("[tokyo, kyoto]"))
+            throw new AssertionError("Route terms include mode instead of endpoints");
+        if(!ResearchEvidence.sufficientlyCovered("Kyoto",
+            "Take the Shinkansen train from Tokyo to Kyoto.",trainQuestion))
+            throw new AssertionError("Train route withheld");
         if(ResearchEvidence.sufficientlyCovered("Night","During a solar eclipse it is partially night.",
             "Can solar power work at night?")) throw new AssertionError("Irrelevant night page accepted");
         if(ResearchEvidence.sufficientlyCovered("The Fall of the Roman Empire (movie)",
@@ -23,6 +36,17 @@ public final class ResearchEvidenceCases {
             "Why did the Soviet Union collapse?")) throw new AssertionError("Unrelated cause accepted");
         if(ResearchEvidence.sufficientlyCovered("Blue", "The sky can be blue. Blue dye appears bright because it reflects light.",
             "Why is the sky blue?")) throw new AssertionError("Adjacent unrelated cause accepted");
+        if(ResearchEvidence.sufficientlyCovered("List of Blue Sky Studios productions",
+            "Originally produced at Blue Sky for release before cancellation due to closure.",
+            "Why is the sky blue?")) throw new AssertionError("Studio catalogue accepted as sky evidence");
+        String history="Many factors and events combined and finally they resulted in the dissolution of the Soviet Union. "
+            +"Under glasnost, the government lost control over the media, exposing economic problems.";
+        if(!ResearchEvidence.sufficientlyCovered("History of the Soviet Union (1985–1991)",
+            ResearchEvidence.excerpt(history,"Why did the Soviet Union collapse?",1100),
+            "Why did the Soviet Union collapse?")) throw new AssertionError("Dissolution evidence missed");
+        if(ResearchEvidence.sufficientlyCovered("Soviet Union",
+            "It collapsed in 1991. Lenin brought the Bolsheviks to power in 1917.",
+            "Why did the Soviet Union collapse?")) throw new AssertionError("Unrelated historical cause accepted");
         if(ResearchEvidence.sufficientlyCovered("Tokyo/Shinagawa", "A bus goes from Shinagawa to Kyoto.",
             "How do I get from Tokyo to Kyoto?")) throw new AssertionError("Route without origin accepted");
         String table=WikiText.excerpt("Lead. {| style=\"width:100%\" | navigational junk |} "
@@ -38,6 +62,122 @@ public final class ResearchEvidenceCases {
             +"The adaptive immune system remembers particular pathogens.";
         if(!ResearchEvidence.excerpt(vaccineArticle,"How do vaccines train the immune system?",550)
             .contains("antigens in vaccines")) throw new AssertionError("Vaccine evidence lost to generic passage");
+        if(ResearchEvidence.sufficientlyCovered("No fly list",
+            "The list prevents some people from flying on airplanes.",
+            "How do airplanes fly?")) throw new AssertionError("Unrelated flight page accepted");
+        if(ResearchEvidence.sufficientlyCovered("Word processor",
+            "A word processor is a computer program that edits text.",
+            "How does a computer processor work?")) throw new AssertionError("Wrong type of processor accepted");
+        if(ResearchEvidence.sufficientlyCovered("Norfolk Tides",
+            "The Tides are named after the nearby bay because the team plays in Norfolk.",
+            "Why do tides occur?")) throw new AssertionError("Unrelated team accepted");
+        if(!ResearchEvidence.sufficientlyCovered("Earthquake",
+            "Earthquakes are caused by tectonic movements in the Earth's crust.",
+            "Why do earthquakes happen?")) throw new AssertionError("Singular subject missed");
+        if(!ResearchEvidence.sufficientlyCovered("Rocket",
+            "Rockets can be launched because exhaust thrust exceeds the weight of the vehicle.",
+            "How do rockets launch?")) throw new AssertionError("Launch inflection withheld");
+        if(!ResearchEvidence.sufficientlyCovered("Ice",
+            "Ice floats on water because ice has less density than water.",
+            "Why does ice float?")) throw new AssertionError("Exact subject evidence withheld");
+        if(ResearchEvidence.sufficientlyCovered("Ice cream float",
+            "An ice cream float is a drink made from ice cream and soda.",
+            "Why does ice float?")) throw new AssertionError("Unrelated compound title accepted");
+        assertRejected("Lightning", "The suddenly heated air expands, which causes thunder. Lightning can strike a person.",
+            "Why does lightning strike?");
+        assertRejected("Aurora", "Auroras can only be seen at night because their light is faint.",
+            "What causes auroras?");
+        assertAccepted("Cloud", "Clouds form when water vapour cools and condenses into tiny droplets.",
+            "How do clouds form?");
+        assertRejected("Spider silk", "Spiders use their silk to create webs for capturing prey.",
+            "How do spiders make silk?");
+        assertAccepted("Windmill", "In a windmill used for pumping water, turning the drive shaft moves a piston. "
+            +"The piston can suck up and push out water.", "How does a windmill pump water?");
+        assertAccepted("Smoke detector", "An ionization smoke detector detects smoke when particles attach and change the voltage.",
+            "How does a smoke detector sense smoke?");
+        assertAccepted("Sound", "Vibrations make air molecules move, carrying sound waves away from their source.",
+            "How does sound travel through air?");
+        assertRejected("Barometer", "A barometer is an instrument used to measure air pressure in hectopascals.",
+            "How does a barometer measure air pressure?");
+        assertAccepted("Desalination", "Desalination removes salt from water. Most desalination is by distillation.",
+            "How does desalination work?");
+        assertRejected("Internet", "People use Internet services by paying providers and visiting websites.",
+            "How does the internet work?");
+        assertAccepted("Spider silk", "Spiders produce silk from proteins secreted by glands in their bodies.",
+            "How do spiders make silk?");
+        String clouds="Clouds form when water vapour cools and condenses into tiny droplets. "
+            +"There are different sorts of clouds because the air where they form moves at different speeds.";
+        if(!ResearchEvidence.excerpt(clouds,"How do clouds form?",550).startsWith("Clouds form when"))
+            throw new AssertionError("Classification outranked cloud mechanism");
+        if(ResearchEvidence.score("Vaccine",
+            "Vaccines prepare the immune system against infection.",
+            "How do vaccines work?") <= ResearchEvidence.score("HPV vaccine",
+            "This vaccine is used because the virus can cause cancer.",
+            "How do vaccines work?")) throw new AssertionError("General article lost to narrow vaccine");
+        assertRejected("World War III","World War III could be caused by nuclear tensions.",
+            "What caused World War I?");
+        assertRejected("1918", "The 1918 season ended early due to World War I.",
+            "What caused the 1918 influenza pandemic?");
+        assertRejected("French Revolution of 1848","The French Revolution of 1848 was caused by a financial crisis.",
+            "Why did the French Revolution happen?");
+        assertRejected("French West Indies","The colonies rebelled, leading to the French Revolution.",
+            "Why did the French Revolution happen?");
+        assertRejected("Berlin Wall","The fall of the Berlin Wall led to German reunification.",
+            "Why did the Berlin Wall fall?");
+        assertRejected("Kyoto","The bus travels from Kyoto to Tokyo.",
+            "How do I get from Tokyo to Kyoto?");
+        assertRejected("Tokyo","A train runs from Tokyo to Kyoto.",
+            "How do I get from Tokyo to Kyoto?");
+        assertRejected("Kyoto Airport","A flight goes from Tokyo to Kyoto.",
+            "How can I travel from Tokyo to Kyoto by train?");
+        assertRejected("Kyoto", "You can fly into Kansai International Airport in Osaka Bay and then get a train to Kyoto.",
+            "How can I travel from Osaka to Kyoto by train?");
+        assertRejected("Immune system",
+            "An immune system is vulnerable to infection because it attacks normal tissues.",
+            "How does the immune system remember infections?");
+        assertRejected("Computer",
+            "The processor of a computer is made from integrated circuits and contains transistors.",
+            "How does a computer processor work?");
+        assertRejected("Computer",
+            "This computer was never built because Babbage lacked money. Later machines played music.",
+            "How does a computer processor work?");
+        assertRejected("Train Stop – Two Minutes",
+            "Train Stop – Two Minutes is a 1972 Soviet fantasy movie.",
+            "How do trains stop?");
+        assertRejected("American Civil War casualties",
+            "The war caused many deaths and casualties.",
+            "Why did the American Civil War begin?");
+        assertRejected("African Americans in the American Civil War",
+            "The American Civil War began due to slavery, and many African Americans fought in it.",
+            "Why did the American Civil War begin?");
+        assertAccepted("Volcano","Pressure builds as magma rises and causes volcanoes to erupt.",
+            "Why do volcanoes erupt?");
+        assertAccepted("Airplane","An airplane flies because lift from the wings counters gravity.",
+            "How do airplanes fly?");
+        assertAccepted("Airplane","Air flows over the wings, which are shaped to create lift.",
+            "How do airplanes fly?");
+        String flight="Air flows over the wings, which are shaped to create lift. "
+            +"This shape is called an airfoil. Uses : Transport : Aircraft carry passengers. "
+            +"War : Aircraft bombed Libya in 1911.";
+        String flightExcerpt=ResearchEvidence.excerpt(flight,"How do airplanes fly?",1100);
+        if(flightExcerpt.contains("Transport") || flightExcerpt.contains("Libya"))
+            throw new AssertionError("Unrelated aircraft uses included in mechanism: "+flightExcerpt);
+        assertAccepted("Western Roman Empire","The Empire had weak leadership, which caused instability and helped invasions.",
+            "Why did the Roman Empire fall?");
+        assertAccepted("Financial crisis of 2007–2008",
+            "The factors that led to the crisis were reported earlier. Background and causes: risky lending spread.",
+            "What caused the 2008 financial crisis?");
+        assertAccepted("Kyoto","A train runs from Tokyo to Kyoto.",
+            "How can I travel from Tokyo to Kyoto by train?");
         System.out.println("ResearchEvidence cases passed");
+    }
+
+    private static void assertRejected(String title,String text,String question) {
+        if(ResearchEvidence.sufficientlyCovered(title,text,question))
+            throw new AssertionError("Unrelated evidence accepted: "+title+" / "+question);
+    }
+    private static void assertAccepted(String title,String text,String question) {
+        if(!ResearchEvidence.sufficientlyCovered(title,text,question))
+            throw new AssertionError("Relevant evidence missed: "+title+" / "+question);
     }
 }

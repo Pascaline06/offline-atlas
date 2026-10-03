@@ -5,6 +5,7 @@
 #include <string>
 #include <unistd.h>
 #include <sampling.h>
+#include <atomic>
 
 #include "logging.h"
 #include "chat.h"
@@ -33,6 +34,7 @@ constexpr int   OVERFLOW_HEADROOM       = 4;
 constexpr int   BATCH_SIZE              = 256;
 constexpr float DEFAULT_SAMPLER_TEMP    = 0.3f;
 
+static std::atomic<bool> g_stop{false};
 static llama_model                      * g_model;
 static llama_context                    * g_context;
 static llama_batch                        g_batch;
@@ -113,6 +115,7 @@ static common_sampler *new_sampler(float temp) {
 extern "C"
 JNIEXPORT jint JNICALL
 Java_com_arm_aichat_internal_InferenceEngineImpl_prepare(JNIEnv * /*env*/, jobject /*unused*/) {
+    g_stop.store(false);
     auto *context = init_context(g_model);
     if (!context) { return 1; }
     g_context = context;
@@ -322,6 +325,7 @@ static int decode_tokens_in_batches(
     // Process tokens in batches using the global batch
     LOGd("%s: Decode %d tokens starting at position %d", __func__, (int) tokens.size(), start_pos);
     for (int i = 0; i < (int) tokens.size(); i += BATCH_SIZE) {
+        if (g_stop.load()) return 3;
         const int cur_batch_size = std::min((int) tokens.size() - i, BATCH_SIZE);
         common_batch_clear(batch);
         LOGv("%s: Preparing a batch size of %d starting at: %d", __func__, cur_batch_size, i);
@@ -441,14 +445,10 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_processUserPrompt(
         LOGv("token: `%s`\t -> `%d`", common_token_to_piece(g_context, id).c_str(), id);
     }
 
-    // Ensure user prompt doesn't exceed the context size by truncating if necessary.
-    int user_prompt_size = (int) user_tokens.size();
-    const int max_batch_size = DEFAULT_CONTEXT_SIZE - OVERFLOW_HEADROOM;
-    if (user_prompt_size > max_batch_size) {
-        const int skipped_tokens = user_prompt_size - max_batch_size;
-        user_tokens.resize(max_batch_size);
-        user_prompt_size = max_batch_size;
-        LOGw("%s: User prompt too long! Skipped %d tokens!", __func__, skipped_tokens);
+    const int user_prompt_size = (int) user_tokens.size();
+    if (current_position + user_prompt_size + n_predict >= DEFAULT_CONTEXT_SIZE - OVERFLOW_HEADROOM) {
+        LOGe("Prompt plus completion exceeds context; refusing silent truncation");
+        return 3;
     }
 
     // Decode user tokens in batches
@@ -562,20 +562,34 @@ Java_com_arm_aichat_internal_InferenceEngineImpl_generateNextToken(
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_arm_aichat_internal_InferenceEngineImpl_unload(JNIEnv * /*unused*/, jobject /*unused*/) {
-    // Reset long-term & short-term states
     reset_long_term_states();
     reset_short_term_states();
-
-    // Free up resources
-    common_sampler_free(g_sampler);
+    if (g_sampler) common_sampler_free(g_sampler);
+    g_sampler = nullptr;
     g_chat_templates.reset();
-    llama_batch_free(g_batch);
-    llama_free(g_context);
-    llama_model_free(g_model);
+    if (g_batch.token) llama_batch_free(g_batch);
+    g_batch = {};
+    if (g_context) llama_free(g_context);
+    g_context = nullptr;
+    if (g_model) llama_model_free(g_model);
+    g_model = nullptr;
 }
 
 extern "C"
 JNIEXPORT void JNICALL
 Java_com_arm_aichat_internal_InferenceEngineImpl_shutdown(JNIEnv *, jobject /*unused*/) {
     llama_backend_free();
+}
+
+extern "C" JNIEXPORT jint JNICALL
+Java_com_arm_aichat_internal_InferenceEngineImpl_tokenCount(JNIEnv *env, jobject, jstring text) {
+    if (!g_context) return -1;
+    const char *raw = env->GetStringUTFChars(text, nullptr);
+    const auto tokens = common_tokenize(g_context, std::string(raw), false, true);
+    env->ReleaseStringUTFChars(text, raw);
+    return static_cast<jint>(tokens.size());
+}
+extern "C" JNIEXPORT void JNICALL
+Java_com_arm_aichat_internal_InferenceEngineImpl_signalStop(JNIEnv *, jobject, jboolean stop) {
+    g_stop.store(stop);
 }

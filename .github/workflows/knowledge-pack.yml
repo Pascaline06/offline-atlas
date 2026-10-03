@@ -1,0 +1,33 @@
+name: Reproducible knowledge pack
+on:
+  push:
+    paths:
+      - '.github/workflows/knowledge-pack.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: Build documented real-data pack
+        run: python3 tools/build_pack.py --output build/knowledge
+      - name: Probe development questions with Android ranker
+        run: python3 tools/retrieve_passages.py build/knowledge/atlas.db data/eval-unseen-20260929.txt --output build/knowledge/retrieval-development.json
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: offline-atlas-real-knowledge-pack
+          path: |
+            build/knowledge/offline-atlas-knowledge.zip*
+            build/knowledge/source-inputs.json
+            build/knowledge/SHA256SUMS
+            build/knowledge/retrieval-development.json
+          if-no-files-found: error
+          retention-days: 30

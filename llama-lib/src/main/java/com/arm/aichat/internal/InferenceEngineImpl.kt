@@ -12,6 +12,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -109,6 +110,10 @@ internal class InferenceEngineImpl private constructor(
     @FastNative
     private external fun shutdown()
 
+    private external fun tokenCount(text: String): Int
+
+    private external fun signalStop(stop: Boolean)
+
     private val _state =
         MutableStateFlow<InferenceEngine.State>(InferenceEngine.State.Uninitialized)
     override val state: StateFlow<InferenceEngine.State> = _state.asStateFlow()
@@ -178,6 +183,7 @@ internal class InferenceEngineImpl private constructor(
                 _state.value = InferenceEngine.State.ModelReady
             } catch (e: Exception) {
                 Log.e(TAG, (e.message ?: "Error loading model") + "\n" + pathToModel, e)
+                unload()
                 _state.value = InferenceEngine.State.Error(e)
                 throw e
             }
@@ -214,6 +220,16 @@ internal class InferenceEngineImpl private constructor(
     /**
      * Send plain text user prompt to LLM, which starts generating tokens in a [Flow]
      */
+    override suspend fun countTokens(text: String): Int = withContext(llamaDispatcher) {
+        check(_state.value is InferenceEngine.State.ModelReady)
+        tokenCount(text)
+    }
+
+    override fun requestStop() {
+        _cancelGeneration = true
+        if (_state.value !is InferenceEngine.State.Uninitialized && _state.value !is InferenceEngine.State.Initializing) signalStop(true)
+    }
+
     override fun sendUserPrompt(
         message: String,
         predictLength: Int,
@@ -224,11 +240,16 @@ internal class InferenceEngineImpl private constructor(
         }
 
         try {
+            kotlinx.coroutines.currentCoroutineContext().ensureActive()
+            _cancelGeneration = false
+            signalStop(false)
             Log.i(TAG, "Sending user prompt...")
             _readyForSystemPrompt = false
             _state.value = InferenceEngine.State.ProcessingUserPrompt
 
             processUserPrompt(message, predictLength).let { result ->
+                kotlinx.coroutines.currentCoroutineContext().ensureActive()
+                if (_cancelGeneration) throw CancellationException("Generation cancelled")
                 if (result != 0) {
                     Log.e(TAG, "Failed to process user prompt: $result")
                     throw IOException("Native prompt processing failed: $result")

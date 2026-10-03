@@ -1,0 +1,52 @@
+# Frozen before running the 2026-09-29 retrieval audit. Not used for tuning.
+# Passage retrieval only; whole answers and online baselines require a separate assessment.
+How does a barometer measure air pressure?
+Why does metal expand when heated?
+How do solar eclipses differ from lunar eclipses?
+What makes a magnetic compass point north?
+How does a hydroelectric dam produce electricity?
+Why does a prism separate colors?
+How does sound travel through air?
+Why do objects orbit the Earth?
+How does a microwave oven heat food?
+What causes ocean waves?
+How does a seed germinate?
+Why do humans need sleep?
+How do kidneys filter blood?
+What causes an allergic reaction?
+How do antibiotics kill bacteria?
+How does a caterpillar become a butterfly?
+Why do some animals hibernate?
+How does blood clot after a cut?
+What causes tooth decay?
+How do fungi reproduce?
+Why did the Byzantine Empire fall?
+What caused the 1918 influenza pandemic?
+Why did the Berlin Wall get built?
+How did the printing press spread books?
+Why did the Mongol Empire expand?
+What caused the Irish Potato Famine?
+How did the Suez Canal change trade?
+Why did the United States enter World War II?
+What led to the fall of Constantinople?
+Why did the French monarchy lose power?
+How do water filters remove particles?
+Why do rechargeable batteries wear out?
+How does a bicycle gear change speed?
+How do satellites stay in orbit?
+How does a windmill pump water?
+What causes a power outage?
+How does a smoke detector sense smoke?
+Why does bread rise while baking?
+How does a thermometer measure temperature?
+Why does salt melt ice?
+How can I travel from Stockholm to Gothenburg by train?
+How can I travel from Bangkok to Chiang Mai by train?
+How can I travel from Brussels to Amsterdam by train?
+How can I travel from Milan to Venice by train?
+How can I travel from Washington to Philadelphia by train?
+How can I travel from Barcelona to Valencia by train?
+How can I travel from Zurich to Geneva by train?
+How can I travel from Jaipur to Delhi by train?
+How can I travel from Manchester to Liverpool by train?
+How can I travel from Seoul to Busan by train?

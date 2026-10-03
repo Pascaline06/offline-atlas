@@ -65,6 +65,7 @@ final class WikiText {
 
     static String excerpt(String body, String title, int maxCharacters) {
         if (body == null) return "";
+        body=body.replaceAll("(?is)<ref\\b[^>]*>.*?</ref\\s*>|<ref\\b[^>]*/>", " ").replaceAll("(?s)<!--.*?-->"," ");
         int lead = body.indexOf("'''" + title + "'''");
         if (lead >= 0) body = body.substring(lead);
         int references = body.indexOf("==References==");
