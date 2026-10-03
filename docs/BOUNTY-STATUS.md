@@ -19,7 +19,7 @@ Updated for Offline Atlas 0.2, 2026-10-03. “Implemented” means reviewed code
 | >50% useful versus internet + frontier models | blinded paired scoring and full-run checks implemented | collect baseline and independent >=100-question phone grades |
 | Public X/Farcaster demo + poidh screenshot/link | proof protocol prepared | record actual phone demo; publish genuine post and claim |
 
-The [development results](DEVELOPMENT-RESULTS.md) show zero accepted source-checked answers in the last 11-question stable desktop probe and an invalid-inference checker failure. These must be addressed and re-evaluated; build success is insufficient.
+The [development results](DEVELOPMENT-RESULTS.md) show zero accepted source-checked answers in an earlier 11-question stable desktop probe. The subsequent checker regression now passes all 16 cases, including the invalid inference and supported paraphrases. Complete answers and usable phone speed still need fresh evaluation; build and fixture success are insufficient.
 
 ## Day 1: finish device viability and obvious failures
 
