@@ -273,7 +273,7 @@ public final class MainActivity extends Activity {
                     catch (Exception error) { response="Model error: "+(error.getMessage()==null ? error.getClass().getSimpleName() : error.getMessage()); }
                     finally { sampler.shutdownNow(); peakPssKiB.accumulateAndGet(processPssKiB(),Math::max); }
                     String complete=response;
-                    boolean finalGrounded=!modelRunner.evidenceUsed().isBlank();
+                    boolean finalGrounded=!modelRunner.evidenceUsed().trim().isEmpty();
                     String rejected=modelRunner.rejectedDraft();
                     boolean accepted=!complete.startsWith("Local model answer rejected")
                         && !complete.startsWith("Model error:") && !complete.startsWith("Local model answer cancelled");

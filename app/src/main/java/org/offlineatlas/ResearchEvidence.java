@@ -93,7 +93,7 @@ final class ResearchEvidence {
                     || terms.subList(1,terms.size()).stream().anyMatch(word->
                         containsWord(passage.toLowerCase(Locale.ROOT),word)))) return true;
             if(question.toLowerCase(Locale.ROOT).matches("(?s).*\\bwork\\b.*")
-                || terms.stream().anyMatch(word->Set.of("travel","point","measure","pump","sense",
+                || terms.stream().anyMatch(word->java.util.Arrays.asList("travel","point","measure","pump","sense",
                     "become","filter","form","germinate","fly","launch","remember","divide",
                     "navigate","stop").contains(word))) return false;
         }

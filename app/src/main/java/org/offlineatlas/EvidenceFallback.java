@@ -12,7 +12,7 @@ final class EvidenceFallback {
     }
 
     static String fromExcerpt(String excerpt,int sourceNumber) {
-        if(excerpt==null || excerpt.isBlank()) return "";
+        if(excerpt==null || excerpt.trim().isEmpty()) return "";
         BreakIterator iterator=BreakIterator.getSentenceInstance(Locale.ENGLISH);
         iterator.setText(excerpt);
         StringBuilder result=new StringBuilder();
