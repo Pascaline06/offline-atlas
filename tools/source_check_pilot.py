@@ -24,6 +24,10 @@ CASES=[
  ('comparison','[1] A\nA uses photovoltaic cells.\n\n[2] B\nB uses combustion.','A uses photovoltaic cells [1], while B uses combustion [2].','SUPPORTED'),
  ('logical_consequence','[1] Rule\nEvery piece of this alloy conducts electricity.\n\n[2] Object\nObject A is a piece of this alloy.','Object A conducts electricity [1][2].','SUPPORTED'),
  ('invalid_inference','[1] Rule\nSome pieces of this alloy conduct electricity.\n\n[2] Object\nObject A is a piece of this alloy.','Object A must conduct electricity [1][2].','UNSUPPORTED'),
+ ('capability_transfer','[1] Mechanism\nHeating the material frees particles. Free particles can move through the channel.','Heating enables particle movement through the channel [1].','SUPPORTED'),
+ ('conditional_preserved','[1] Valve\nWhen the valve is open, fluid can move through the pipe.','Opening the valve allows fluid movement through the pipe [1].','SUPPORTED'),
+ ('conditional_removed','[1] Valve\nWhen the valve is open, fluid can move through the pipe.','Fluid moves through the pipe regardless of the valve position [1].','UNSUPPORTED'),
+ ('modal_guarantee','[1] Valve\nThe valve may open when warmed.','The valve always opens when warmed [1].','UNSUPPORTED'),
  ('borrowed_citation','[1] A\nA uses photovoltaic cells.\n\n[2] B\nB uses combustion.','A uses combustion [1].','UNSUPPORTED'),
 ]
 def main(model,binary,output):
