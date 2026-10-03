@@ -1,6 +1,11 @@
 package org.offlineatlas;
 
-import android.test.InstrumentationTestCase;
+import static org.junit.Assert.*;
+import android.app.Instrumentation;
+import androidx.test.platform.app.InstrumentationRegistry;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
 import android.widget.EditText;
@@ -9,9 +14,10 @@ import android.view.View;
 import android.view.ViewGroup;
 
 /** Run on the real target phone; never presented as inference or quality proof. */
-@SuppressWarnings("deprecation")
-public final class OfflineSmokeTest extends InstrumentationTestCase {
-    public void testNoInternetPermissionAndFixtureSuppression() throws Exception {
+@RunWith(AndroidJUnit4.class)
+public final class OfflineSmokeTest {
+    private Instrumentation getInstrumentation() { return InstrumentationRegistry.getInstrumentation(); }
+    @Test public void testNoInternetPermissionAndFixtureSuppression() throws Exception {
         android.content.Context context=getInstrumentation().getTargetContext();
         PackageInfo info=context.getPackageManager().getPackageInfo(context.getPackageName(),android.content.pm.PackageManager.GET_PERMISSIONS);
         if(info.requestedPermissions!=null) for(String permission:info.requestedPermissions)
@@ -21,7 +27,7 @@ public final class OfflineSmokeTest extends InstrumentationTestCase {
             assertTrue(repository.search(" ").results.isEmpty());
         }
     }
-    public void testLaunchAndEmptySearch() throws Exception {
+    @Test public void testLaunchAndEmptySearch() throws Exception {
         Intent intent=new Intent(getInstrumentation().getTargetContext(),MainActivity.class);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
         MainActivity activity=(MainActivity)getInstrumentation().startActivitySync(intent);

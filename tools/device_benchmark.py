@@ -25,7 +25,7 @@ def run(questions,output):
     adb('shell','run-as','org.offlineatlas.preview','rm','-f','files/evaluation.jsonl','files/evaluation.jsonl.previous')
     encoded=base64.b64encode(raw).decode()
     with (output/'instrumentation.txt').open('wb') as out:
-        adb('shell','am','instrument','-w','-e','class','org.offlineatlas.ResearchBenchmarkTest','-e','questions_base64',encoded,'org.offlineatlas.preview.test/android.test.InstrumentationTestRunner',stdout=out)
+        adb('shell','am','instrument','-w','-e','class','org.offlineatlas.ResearchBenchmarkTest','-e','questions_base64',encoded,'org.offlineatlas.preview.test/androidx.test.runner.AndroidJUnitRunner',stdout=out)
     with (output/'phone-answers.jsonl').open('wb') as out: adb('shell','run-as','org.offlineatlas.preview','cat','files/evaluation.jsonl',stdout=out)
     logs=[json.loads(line) for line in (output/'phone-answers.jsonl').read_text().splitlines() if line.strip()]
     if len(logs)!=len(queries) or {r['question'] for r in logs}!=set(queries): raise RuntimeError('Incomplete run. Keep failures; do not grade a selected subset.')

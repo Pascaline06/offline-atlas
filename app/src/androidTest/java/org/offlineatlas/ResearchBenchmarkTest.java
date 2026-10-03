@@ -1,6 +1,11 @@
 package org.offlineatlas;
 
-import android.test.InstrumentationTestCase;
+import static org.junit.Assert.*;
+import android.app.Instrumentation;
+import androidx.test.platform.app.InstrumentationRegistry;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 import android.content.Intent;
 import android.view.View;
 import android.view.ViewGroup;
@@ -8,10 +13,11 @@ import android.widget.Button;
 import android.widget.EditText;
 
 /** Executes frozen questions through the real UI and native inference on the target phone. */
-@SuppressWarnings("deprecation")
-public final class ResearchBenchmarkTest extends InstrumentationTestCase {
-    public void testFrozenQuestions() throws Exception {
-        String encoded=((android.test.InstrumentationTestRunner)getInstrumentation()).getArguments().getString("questions_base64");
+@RunWith(AndroidJUnit4.class)
+public final class ResearchBenchmarkTest {
+    private Instrumentation getInstrumentation() { return InstrumentationRegistry.getInstrumentation(); }
+    @Test public void testFrozenQuestions() throws Exception {
+        String encoded=InstrumentationRegistry.getArguments().getString("questions_base64");
         assertNotNull("Supply independently frozen questions through tools/device_benchmark.py",encoded);
         String questions=new String(android.util.Base64.decode(encoded,android.util.Base64.DEFAULT),java.nio.charset.StandardCharsets.UTF_8);
         Intent intent=new Intent(getInstrumentation().getTargetContext(),MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);

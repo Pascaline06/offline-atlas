@@ -16,7 +16,7 @@ if rg -q 'android.permission.INTERNET' "$RESULT_DIR/package.txt"; then
   echo 'Unexpected Internet permission' >&2
   exit 1
 fi
-adb shell am instrument -w -e class org.offlineatlas.OfflineSmokeTest org.offlineatlas.preview.test/android.test.InstrumentationTestRunner > "$RESULT_DIR/smoke.txt"
+adb shell am instrument -w -e class org.offlineatlas.OfflineSmokeTest org.offlineatlas.preview.test/androidx.test.runner.AndroidJUnitRunner > "$RESULT_DIR/smoke.txt"
 cat "$RESULT_DIR/smoke.txt"
 if ! rg -q 'OK \(2 tests\)' "$RESULT_DIR/smoke.txt"; then exit 1; fi
 adb shell dumpsys meminfo org.offlineatlas.preview > "$RESULT_DIR/launch-memory.txt"
