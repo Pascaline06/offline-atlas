@@ -59,6 +59,8 @@ def main():
                     item={"question":question,"error":repr(error),"seconds":round(time.monotonic()-begin,2)}
                 stream.write(json.dumps(item,ensure_ascii=False)+"\n"); stream.flush()
                 print(question,item.get("seconds"),item.get("error","ok"),flush=True)
+        errors=[json.loads(line) for line in output.read_text().splitlines() if line]
+        if any("error" in item for item in errors): raise RuntimeError("Model pilot failed to produce all answers; see raw output")
     finally:
         server.terminate()
         try: server.wait(timeout=10)

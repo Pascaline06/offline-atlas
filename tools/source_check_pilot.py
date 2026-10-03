@@ -50,6 +50,8 @@ def main(model,binary,output):
                 records.append(dict(case=name,expected=expected,verdict=verdict,correct_safe_decision=(verdict=="SUPPORTED")== (expected=="SUPPORTED"),exact_verdict_format=verdict in {"SUPPORTED","UNSUPPORTED"},accepted=verdict=="SUPPORTED",seconds=round(time.monotonic()-start,2),sources=sources,answer=answer))
                 print(name,verdict,flush=True)
             Path(output).write_text(''.join(json.dumps(row)+'\n' for row in records))
+            failures=[row['case'] for row in records if not row['correct_safe_decision'] or not row['exact_verdict_format']]
+            if failures: raise RuntimeError('Source-check regression failures: '+', '.join(failures))
         finally:
             server.terminate()
             try: server.wait(timeout=10)

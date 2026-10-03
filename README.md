@@ -51,7 +51,7 @@ The tool verifies input hashes and records article caps and resulting pack hashe
 
 ## Validation and submission
 
-Follow [the real-device protocol](docs/DEVICE-VALIDATION.md), [whole-answer evaluation](docs/WHOLE-ANSWER-EVAL.md) and [the requirement matrix and two-day plan](docs/BOUNTY-STATUS.md). The [initial audit](docs/INITIAL-AUDIT.md) explains the previous failures; [v0.1 history](docs/HISTORY-0.1.md) is retained separately. Code is in [PR #2](https://github.com/Pascaline06/offline-atlas/pull/2).
+Follow [the real-device protocol](docs/DEVICE-VALIDATION.md), [whole-answer evaluation](docs/WHOLE-ANSWER-EVAL.md) and [the requirement matrix and two-day plan](docs/BOUNTY-STATUS.md). The [development results](docs/DEVELOPMENT-RESULTS.md) record measured answer failures and remaining limitations. The [initial audit](docs/INITIAL-AUDIT.md) explains the previous failures; [v0.1 history](docs/HISTORY-0.1.md) is retained separately. Code is in [PR #2](https://github.com/Pascaline06/offline-atlas/pull/2).
 
 The bounty requires a real offline phone demo, independently assessable research quality and public X/Farcaster + poidh proof. Those are not established by compilation or an APK download. A win cannot be guaranteed by this project.
 

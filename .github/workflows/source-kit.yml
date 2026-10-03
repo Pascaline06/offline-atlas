@@ -1,4 +1,4 @@
-name: Source build kit
+name: Verified preview source build kit
 on:
   push:
     paths: ['.github/workflows/source-kit.yml']
