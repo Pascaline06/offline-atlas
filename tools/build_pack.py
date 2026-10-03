@@ -84,24 +84,38 @@ def run(output,manifest=None):
     output.mkdir(parents=True,exist_ok=True)
     inputs=[] if manifest is None else json.loads(manifest.read_text())['sources']
     sources=[];documents=[]
-    for project in ['simplewiki','enwikivoyage']:
-        entry=next((item for item in inputs if item.get('project')==project),None)
-        if entry:
-            url,date=entry['url'],entry['snapshot'].replace('-','')
-        else:
-            url,date=discover(project)
-        extension='.json.gz' if url.endswith('.gz') else '.json.bz2'
-        raw=output/(project+extension)
+    if not inputs:
+        try:
+            inputs=[dict(project=project,url=url,snapshot=date,format='cirrus')
+                    for project in ['simplewiki','enwikivoyage']
+                    for url,date in [discover(project)]]
+        except RuntimeError as error:
+            print(str(error), 'Using versioned Wikipedia mirror instead.', flush=True)
+            base='https://huggingface.co/datasets/wikimedia/wikipedia/resolve/main/'
+            inputs=[dict(project='simplewiki',url=base+'20231101.simple/train-00000-of-00001.parquet',
+                         snapshot='20231101',format='parquet'),
+                    dict(project='enwiki',url=base+'20231101.en/train-00000-of-00041.parquet',
+                         snapshot='20231101',format='parquet')]
+    for index,entry in enumerate(inputs):
+        project=entry['project'];url=entry['url'];date=entry['snapshot'].replace('-','')
+        format_=entry.get('format','cirrus')
+        raw=output/(str(index)+('.parquet' if format_=='parquet' else '.json.gz' if url.endswith('.gz') else '.json.bz2'))
         print('Downloading',project,url,flush=True)
-        checksum,size=download(url,raw,entry.get('sha256') if entry else None)
-        target=output/(project+'.jsonl')
-        count=convert(raw,target,project,date)
+        checksum,size=download(url,raw,entry.get('sha256'))
+        target=output/(str(index)+'.jsonl')
+        cap=entry.get('maximum_raw_article_characters',250000 if format_=='cirrus' else 60000)
+        if format_=='parquet':
+            from import_parquet import convert_parquet
+            count=convert_parquet(raw,target,project,date,cap)
+            license_='CC BY-SA 3.0 and GFDL as declared by the wikimedia/wikipedia dataset card; Wikimedia contributors, revision history at each article URL'
+        else:
+            count=convert(raw,target,project,date,cap)
+            license_='CC BY-SA 4.0; Wikimedia contributors, revision history at each article URL'
         if count<1000:
             raise RuntimeError('Unexpectedly small '+project+' corpus: '+str(count))
-        sources.append(dict(project=project,url=url,sha256=checksum,bytes=size,
+        sources.append(dict(project=project,url=url,sha256=checksum,bytes=size,format=format_,
             snapshot=str(dt.datetime.strptime(date,'%Y%m%d').date()),articles=count,
-            license='CC BY-SA 4.0; Wikimedia contributors, revision history at each article URL',
-            maximum_raw_article_characters=250000))
+            license=license_,maximum_raw_article_characters=cap))
         documents.append(target)
         raw.unlink()
     (output/'places.jsonl').write_text('')
@@ -119,7 +133,7 @@ def run(output,manifest=None):
         raise RuntimeError('Pack and supported model exceed the installed asset budget')
     manifest_data=dict(schema=1,prepared_at_utc=dt.datetime.now(dt.timezone.utc).isoformat(),
         sources=sources,pack=dict(file='atlas.db',sha256=sha256(database),bytes=database.stat().st_size,
-        **metadata),scope='Simple English Wikipedia and English Wikivoyage; no live or verified-current venues')
+        **metadata),scope='Versioned article sources listed above. English Wikipedia mirror is one of 41 shards, not the full encyclopedia. No live or verified-current venues.')
     (output/'source-inputs.json').write_text(json.dumps(manifest_data,indent=2)+'\n')
     archive=output/'offline-atlas-knowledge.zip'
     print('Compressing installation pack',flush=True)

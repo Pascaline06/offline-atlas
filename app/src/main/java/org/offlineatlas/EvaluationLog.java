@@ -22,7 +22,12 @@ final class EvaluationLog {
                        long firstTextMs,long totalMs,int sampledPeakPssKiB) throws IOException {
         try {
             JSONObject record=new JSONObject();
-            record.put("schema",3);
+            record.put("schema",4);
+            record.put("device_model",android.os.Build.MODEL);
+            record.put("device_manufacturer",android.os.Build.MANUFACTURER);
+            record.put("android_sdk",android.os.Build.VERSION.SDK_INT);
+            record.put("android_release",android.os.Build.VERSION.RELEASE);
+            record.put("model_sha256",modelUsed ? "3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597" : JSONObject.NULL);
             record.put("app_version",appVersion);
             record.put("model_used",modelUsed);
             record.put("recorded_at_utc",java.time.Instant.now().toString());
@@ -46,6 +51,11 @@ final class EvaluationLog {
                 sources.put(source);
             }
             record.put("sources",sources);
+            if(file.length()>16_000_000L) {
+                File previous=new File(file.getPath()+".previous");
+                previous.delete();
+                if(!file.renameTo(previous)) throw new IOException("Cannot rotate local evaluation log");
+            }
             byte[] line=(record.toString()+"\n").getBytes(StandardCharsets.UTF_8);
             try(FileOutputStream out=new FileOutputStream(file,true)) {
                 out.write(line);

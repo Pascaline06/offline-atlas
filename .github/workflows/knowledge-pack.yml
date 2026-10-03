@@ -5,7 +5,7 @@ on:
       - '.github/workflows/knowledge-pack.yml'
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
 jobs:
   pack:
     runs-on: ubuntu-latest
@@ -16,6 +16,8 @@ jobs:
         with:
           distribution: temurin
           java-version: '17'
+      - name: Install desktop-only mirror reader
+        run: python3 -m pip install pyarrow==18.1.0
       - name: Build documented real-data pack
         run: python3 tools/build_pack.py --output build/knowledge
       - name: Probe development questions with Android ranker
@@ -31,3 +33,10 @@ jobs:
             build/knowledge/retrieval-development.json
           if-no-files-found: error
           retention-days: 30
+      - name: Publish downloadable preparation pack
+        if: success() && github.ref == 'refs/heads/codex/offline-atlas-completion'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="knowledge-v5-${GITHUB_RUN_ID}"
+          gh release create "$TAG" --target "$GITHUB_SHA" --prerelease --title 'Offline Atlas schema 5 knowledge pack' --notes 'Offline preparation pack. Consult source-inputs.json for corpus scope, snapshot dates, licenses, checksums and reproducible input URLs. This is not evidence of bounty qualification.' build/knowledge/offline-atlas-knowledge.zip* build/knowledge/source-inputs.json build/knowledge/SHA256SUMS

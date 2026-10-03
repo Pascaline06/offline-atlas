@@ -88,7 +88,9 @@ public final class MainActivity extends Activity {
             File saved=new File(getFilesDir(),"offline-model.gguf");
             AssetSwap.recover(saved);
             if (saved.isFile()) {
-                try { modelRunner=new ModelRunner(this); modelRunner.load(saved.getAbsolutePath());
+                try {
+                    if(saved.length()!=2497281120L) throw new IllegalArgumentException("Saved model is not the supported 4B profile; select the published model file");
+                    modelRunner=new ModelRunner(this); modelRunner.load(saved.getAbsolutePath());
                     ui(() -> output.addView(label("Saved local model ready.",16)));
                 } catch (Exception error) { ui(() -> output.addView(label("Saved model did not load: "+error.getMessage(),16))); }
             }
