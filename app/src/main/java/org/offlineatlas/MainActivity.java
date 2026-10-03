@@ -63,7 +63,7 @@ public final class MainActivity extends Activity {
         input=new EditText(this); input.setFilters(new InputFilter[]{new InputFilter.LengthFilter(2000)}); input.setSingleLine(false); input.setMinLines(2); input.setHint("Ask a question or search vegan restaurants in a city"); input.setImeOptions(EditorInfo.IME_ACTION_SEARCH); root.addView(input);
         search=new Button(this); search.setText("Search offline"); search.setEnabled(false); root.addView(search);
         install=new Button(this); install.setText("Install knowledge pack (ZIP or select all parts)"); install.setEnabled(false); root.addView(install);
-        knowledge=new Switch(this); knowledge.setText("Use local model knowledge when sources are missing"); knowledge.setChecked(getPreferences(0).getBoolean("knowledge",true)); root.addView(knowledge);
+        knowledge=new Switch(this); knowledge.setText("Allow answers from local model knowledge without source support"); knowledge.setChecked(getPreferences(0).getBoolean("knowledge",true)); root.addView(knowledge);
         knowledge.setOnCheckedChangeListener((button,checked)->getPreferences(0).edit().putBoolean("knowledge",checked).apply());
         stop=new Button(this); stop.setText("Stop answer"); stop.setEnabled(false); root.addView(stop);
         stop.setOnClickListener(view -> {if(modelRunner!=null) modelRunner.cancel(); stop.setEnabled(false);});
@@ -254,20 +254,21 @@ public final class MainActivity extends Activity {
                     ScheduledExecutorService sampler=Executors.newSingleThreadScheduledExecutor();
                     sampler.scheduleAtFixedRate(() -> peakPssKiB.accumulateAndGet(processPssKiB(),Math::max),
                         0,500,TimeUnit.MILLISECONDS);
-                    try { response=modelRunner.answer(question,evidence.toString(),comparison,partial -> {
+                    try { response=modelRunner.answer(question,evidence.toString(),comparison,knowledgeEnabled,partial -> {
                         if(!partial.isEmpty()) firstTextMs.compareAndSet(-1,SystemClock.elapsedRealtime()-modelStart);
                         ui(() -> modelText.setText("Draft in progress — not yet checked:\n"+partial));
                     }); }
                     catch (Exception error) { response="Model error: "+(error.getMessage()==null ? error.getClass().getSimpleName() : error.getMessage()); }
                     finally { sampler.shutdownNow(); peakPssKiB.accumulateAndGet(processPssKiB(),Math::max); }
                     String complete=response;
+                    boolean finalGrounded=!modelRunner.evidenceUsed().isBlank();
                     String rejected=modelRunner.rejectedDraft();
                     boolean accepted=!complete.startsWith("Local model answer rejected")
                         && !complete.startsWith("Model error:") && !complete.startsWith("Local model answer cancelled");
                     String fallback=accepted ? "" : citedPassage;
                     String displayed=accepted ? complete : fallback.isEmpty() ? complete
                         : "Cited local passage (model answer not verified):\n"+fallback;
-                    String outcome=accepted ? (grounded ? "grounded_local_check_passed" : "model_knowledge") : complete.startsWith("Local model answer cancelled") ? "cancelled" : complete.startsWith("Model error:") ? "error" : "rejected";
+                    String outcome=accepted ? (finalGrounded ? "grounded_local_check_passed" : grounded ? "model_knowledge_after_source_rejection" : "model_knowledge") : complete.startsWith("Local model answer cancelled") ? "cancelled" : complete.startsWith("Model error:") ? "error" : "rejected";
                     long totalMs=SystemClock.elapsedRealtime()-searchStart;
                     saveEvaluation(true,question,answer,displayed,outcome,
                         rejected==null ? "" : rejected,retrievalMs,firstTextMs.get(),totalMs,peakPssKiB.get());
@@ -277,7 +278,7 @@ public final class MainActivity extends Activity {
                         else if (!accepted) modelText.setText(complete);
                         else {
                             if(citedText!=null) output.removeView(citedText);
-                            modelText.setText((grounded ? "Answer from offline sources (check citations):\n" : "Local model knowledge — no retrieved source support:\n")+complete);
+                            modelText.setText((finalGrounded ? "Answer from offline sources (check citations):\n" : "Local model knowledge — no retrieved source support:\n")+complete);
                         }
                         if (rejected!=null && !rejected.isEmpty()) {
                             TextView diagnostic=label("Show rejected drafts (unverified)",13);

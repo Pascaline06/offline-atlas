@@ -45,7 +45,7 @@ def main(model,binary,output):
                 start=time.monotonic()
                 result=request('http://127.0.0.1:18888/v1/chat/completions',dict(messages=[dict(role='system',content=prompt('system')),dict(role='user',content=prompt('verify',sources,answer))],temperature=0,max_tokens=16,stream=False),timeout=180)
                 verdict=result['choices'][0]['message']['content'].strip().upper()
-                records.append(dict(case=name,expected=expected,verdict=verdict,correct=verdict==expected,seconds=round(time.monotonic()-start,2),sources=sources,answer=answer))
+                records.append(dict(case=name,expected=expected,verdict=verdict,correct_safe_decision=(verdict=="SUPPORTED")== (expected=="SUPPORTED"),exact_verdict_format=verdict in {"SUPPORTED","UNSUPPORTED"},accepted=verdict=="SUPPORTED",seconds=round(time.monotonic()-start,2),sources=sources,answer=answer))
                 print(name,verdict,flush=True)
             Path(output).write_text(''.join(json.dumps(row)+'\n' for row in records))
         finally:
