@@ -276,7 +276,7 @@ final class AtlasRepository implements AutoCloseable {
         if(comparison!=null) {
             List<Result> left=retrieve(comparison[0]),right=retrieve(comparison[1]);
             if(!left.isEmpty()) results.add(left.get(0));
-            if(!right.isEmpty() && results.stream().noneMatch(r->r.source.equals(right.get(0).source))) results.add(right.get(0));
+            if(!right.isEmpty() && results.stream().noneMatch(r->r.source.equals(right.get(0).source) && r.description.equals(right.get(0).description))) results.add(right.get(0));
             if(results.size()<2) return new Answer("Only partial comparison evidence is available. The local model can explain what it knows; retrieved sources are listed separately.",results,null,false);
             return new Answer("Offline comparison evidence. Citation markers do not establish claim support.",results,null,true);
         }

@@ -13,3 +13,8 @@ with tempfile.TemporaryDirectory() as directory:
                     *map(str,[source/(name+'.java') for name in modules]),*map(str,cases)],check=True)
     for case in cases:
         subprocess.run(['java','-cp',directory,'org.offlineatlas.'+case.stem],check=True)
+
+with tempfile.TemporaryDirectory() as directory:
+    binary=Path(directory)/'utf8-cases'
+    subprocess.run(['c++','-std=c++17','-Wall','-Wextra','-Werror',str(ROOT/'tests/utf8_cases.cpp'),'-o',str(binary)],check=True)
+    subprocess.run([str(binary)],check=True)

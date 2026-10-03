@@ -13,7 +13,7 @@ import java.util.regex.Pattern;
 /** Shared Android/desktop query planning and bounded FTS4 passage ranking. */
 final class RetrievalPlan {
     static final int CANDIDATE_LIMIT=96;
-    static final String STOP="|a|an|the|and|or|what|why|how|explain|describe|tell|about|compare|contrast|difference|differences|are|for|from|with|does|do|did|was|were|have|has|had|its|this|that|their|main|way|into|between|can|could|would|you|me|to|in|of|is|at|by|be|it|they|them|work|works|happen|happens|happening|occur|occurs|";
+    static final String STOP="|a|an|the|and|or|what|why|how|explain|describe|tell|about|compare|contrast|difference|differences|are|for|from|with|does|do|did|was|were|have|has|had|its|this|that|their|main|way|into|between|can|could|would|you|me|to|in|of|is|at|by|be|it|they|them|work|works|happen|happens|happening|occur|occurs|differ|differs|different|";
     private static final Pattern WORD=Pattern.compile("[\\p{L}\\p{N}]+");
     private RetrievalPlan() { }
 

@@ -118,6 +118,7 @@ internal class InferenceEngineImpl private constructor(
         MutableStateFlow<InferenceEngine.State>(InferenceEngine.State.Uninitialized)
     override val state: StateFlow<InferenceEngine.State> = _state.asStateFlow()
 
+    @Volatile private var nativeReady = false
     private var _readyForSystemPrompt = false
     @Volatile
     private var _cancelGeneration = false
@@ -139,9 +140,12 @@ internal class InferenceEngineImpl private constructor(
                 Log.i(TAG, "Loading native library...")
                 System.loadLibrary("ai-chat")
                 init(nativeLibDir)
+                nativeReady = true
                 _state.value = InferenceEngine.State.Initialized
                 Log.i(TAG, "Native library loaded! System info: \n${systemInfo()}")
 
+            } catch (e: UnsatisfiedLinkError) {
+                _state.value = InferenceEngine.State.Error(IOException("Native library initialization failed",e))
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to load native library", e)
                 _state.value = InferenceEngine.State.Error(e)
@@ -227,7 +231,7 @@ internal class InferenceEngineImpl private constructor(
 
     override fun requestStop() {
         _cancelGeneration = true
-        if (_state.value !is InferenceEngine.State.Uninitialized && _state.value !is InferenceEngine.State.Initializing) signalStop(true)
+        if (nativeReady) signalStop(true)
     }
 
     override fun sendUserPrompt(
@@ -316,6 +320,8 @@ internal class InferenceEngineImpl private constructor(
                 }
 
                 is InferenceEngine.State.Error -> {
+                    check(nativeReady) { "Native initialization failed; restart the app before retrying" }
+                    unload()
                     Log.i(TAG, "Resetting error states...")
                     _state.value = InferenceEngine.State.Initialized
                     Log.i(TAG, "States reset!")
@@ -334,12 +340,13 @@ internal class InferenceEngineImpl private constructor(
         _cancelGeneration = true
         runBlocking(llamaDispatcher) {
             _readyForSystemPrompt = false
-            when(_state.value) {
+            if(nativeReady) when(_state.value) {
                 is InferenceEngine.State.Uninitialized -> {}
                 is InferenceEngine.State.Initialized -> shutdown()
                 else -> { unload(); shutdown() }
             }
         }
+        nativeReady=false
         llamaScope.cancel()
         instance = null
     }

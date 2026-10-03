@@ -27,7 +27,7 @@ Example development queries: “How do antibiotics and vaccines differ?”, “H
 
 ## Reproduce from source
 
-Install JDK 17, Python 3.11+, Android SDK 35, build-tools 35.0.0, NDK 29.0.13113456 and CMake 3.31.6. Set `ANDROID_HOME` and accept SDK licenses. Initial dependency downloads require networking; running the built app does not.
+Install a C++17 compiler, JDK 17, Python 3.11+, Android SDK 35, build-tools 35.0.0, NDK 29.0.13113456 and CMake 3.31.6. Set `ANDROID_HOME` and accept SDK licenses. Initial dependency downloads require networking; running the built app does not.
 
 ```sh
 git clone https://github.com/Pascaline06/offline-atlas.git

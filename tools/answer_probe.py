@@ -29,14 +29,16 @@ def run(database,model,binary,output):
             source=ROOT/'app/src/main/java/org/offlineatlas'
             subprocess.run(['java','--module','jdk.compiler/com.sun.tools.javac.Main','-d',temp,str(source/'PromptPolicy.java'),str(source/'AnswerReview.java'),str(ROOT/'tools/AnswerBridge.java')],check=True)
             def prompt(action,*args):
-                return base64.b64decode(subprocess.check_output(['java','-cp',temp,'org.offlineatlas.PromptPolicy',action,*[encode(s) for s in args]])).decode()
+                values=[encode(s) for s in args]
+                if action=="answer": values.append(str(bool(retrieval.subjects(args[0]))).lower())
+                return base64.b64decode(subprocess.check_output(['java','-cp',temp,'org.offlineatlas.PromptPolicy',action,*values])).decode()
             system=prompt('system')
             def generate(user,limit):
                 result=request('http://127.0.0.1:18889/v1/chat/completions',dict(messages=[dict(role='system',content=system),dict(role='user',content=user)],temperature=0,max_tokens=limit,stream=False),timeout=180)
                 return result['choices'][0]['message']['content']
             def tokens(user): return len(request('http://127.0.0.1:18889/tokenize',dict(content=user),timeout=30)['tokens'])
-            def review(draft,evidence):
-                values=subprocess.check_output(['java','-cp',temp,'org.offlineatlas.AnswerBridge',encode(draft),encode(evidence),'false']).decode().split('\t')
+            def review(draft,evidence,comparison=False):
+                values=subprocess.check_output(['java','-cp',temp,'org.offlineatlas.AnswerBridge',encode(draft),encode(evidence),str(comparison).lower()]).decode().split('\t')
                 return values[0]=='1',base64.b64decode(values[1]).decode(),base64.b64decode(values[2]).decode()
             with Path(output).open('w') as stream:
                 for question in QUERIES:
@@ -45,13 +47,16 @@ def run(database,model,binary,output):
                         if 'currently open' in question:
                             row.update(answer='I cannot verify live information offline.',mode='live_refusal')
                         else:
+                            pair=retrieval.subjects(question)
+                            comparison=bool(pair)
                             passages=retrieval.retrieve(con,question)
                             evidence='\n\n'.join(f'[{i}] {p["title"]}\n{p["excerpt"]}' for i,p in enumerate(passages,1))
                             while tokens(prompt('answer',question,evidence))>2800 and evidence:
                                 blocks=re.split(r'(?m)(?=^\[\d+\] )',evidence);evidence=''.join(blocks[:-1]).strip()
+                            if comparison and len(passages)<2: evidence=""
                             row['sources']=passages;row['model_context']=evidence
                             draft=generate(prompt('answer',question,evidence),384)
-                            accepted,text,reason=review(draft,evidence);row['source_draft']=draft;row['structure_reason']=reason
+                            accepted,text,reason=review(draft,evidence,comparison and bool(evidence));row['source_draft']=draft;row['structure_reason']=reason
                             if accepted and evidence:
                                 check=prompt('verify',evidence,text)
                                 verdict=generate(check,16).strip().upper() if tokens(check)<=3200 else 'CONTEXT_OVERFLOW'

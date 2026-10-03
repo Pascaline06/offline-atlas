@@ -19,7 +19,7 @@ class Retriever:
         source = ROOT / 'app/src/main/java/org/offlineatlas'
         subprocess.run(['java', '--module', 'jdk.compiler/com.sun.tools.javac.Main',
                         '-d', self.directory.name, str(source/'RetrievalPlan.java'),
-                        str(source/'WikiText.java'), str(ROOT/'tools/RetrievalBridge.java')], check=True)
+                        str(source/'WikiText.java'),str(source/'ComparisonQuery.java'), str(ROOT/'tools/RetrievalBridge.java')], check=True)
         self.process = subprocess.Popen(['java', '-cp', self.directory.name, 'org.offlineatlas.RetrievalBridge'],
                                         stdin=subprocess.PIPE, stdout=subprocess.PIPE, text=True)
 
@@ -31,7 +31,17 @@ class Retriever:
             raise RuntimeError('Retrieval bridge exited unexpectedly')
         return value.strip()
 
-    def retrieve(self, con, question):
+    def subjects(self,question):
+        count=int(self.line('C',encode(question)))
+        return [base64.b64decode(self.process.stdout.readline()).decode() for _ in range(count)]
+
+    def retrieve(self, con, question, comparison=True):
+        pair=self.subjects(question) if comparison else []
+        if pair:
+            left=self.retrieve(con,pair[0],False);right=self.retrieve(con,pair[1],False)
+            selected=left[:1]
+            if right and not any(p['source']==right[0]['source'] and p['excerpt']==right[0]['excerpt'] for p in selected): selected.append(right[0])
+            return selected
         count = int(self.line('P', encode(question)))
         queries = [base64.b64decode(self.process.stdout.readline()).decode() for _ in range(count)]
         version = con.execute('PRAGMA user_version').fetchone()[0]

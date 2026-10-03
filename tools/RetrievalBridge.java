@@ -15,6 +15,10 @@ public final class RetrievalBridge {
                     var queries=RetrievalPlan.queries(decode(values[1]));
                     System.out.println(queries.size());
                     for(String query:queries) System.out.println(encode(query));
+                } else if(values[0].equals("C")) {
+                    String[] pair=ComparisonQuery.parse(decode(values[1]));
+                    System.out.println(pair==null ? 0 : 2);
+                    if(pair!=null) for(String subject:pair) System.out.println(encode(subject));
                 } else if(values[0].equals("Q")) {
                     System.out.println(encode(RetrievalPlan.candidateSql(values[1].equals("1"))));
                 } else if(values[0].equals("S")) {

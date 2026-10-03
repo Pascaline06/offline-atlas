@@ -20,7 +20,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
         with:
           gradle-version: '8.10.2'
-      - name: Prepare source bundle and verified wrapper
+      - name: Prepare final source bundle and verified wrapper
         shell: bash
         run: |
           mkdir -p build/source-kit/wrapper
