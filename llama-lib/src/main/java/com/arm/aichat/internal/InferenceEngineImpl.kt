@@ -12,6 +12,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -109,10 +110,17 @@ internal class InferenceEngineImpl private constructor(
     @FastNative
     private external fun shutdown()
 
+    private external fun tokenCount(text: String): Int
+
+    private external fun setGrammar(grammar: String): Int
+
+    private external fun signalStop(stop: Boolean)
+
     private val _state =
         MutableStateFlow<InferenceEngine.State>(InferenceEngine.State.Uninitialized)
     override val state: StateFlow<InferenceEngine.State> = _state.asStateFlow()
 
+    @Volatile private var nativeReady = false
     private var _readyForSystemPrompt = false
     @Volatile
     private var _cancelGeneration = false
@@ -134,9 +142,12 @@ internal class InferenceEngineImpl private constructor(
                 Log.i(TAG, "Loading native library...")
                 System.loadLibrary("ai-chat")
                 init(nativeLibDir)
+                nativeReady = true
                 _state.value = InferenceEngine.State.Initialized
                 Log.i(TAG, "Native library loaded! System info: \n${systemInfo()}")
 
+            } catch (e: UnsatisfiedLinkError) {
+                _state.value = InferenceEngine.State.Error(IOException("Native library initialization failed",e))
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to load native library", e)
                 _state.value = InferenceEngine.State.Error(e)
@@ -178,6 +189,7 @@ internal class InferenceEngineImpl private constructor(
                 _state.value = InferenceEngine.State.ModelReady
             } catch (e: Exception) {
                 Log.e(TAG, (e.message ?: "Error loading model") + "\n" + pathToModel, e)
+                unload()
                 _state.value = InferenceEngine.State.Error(e)
                 throw e
             }
@@ -214,9 +226,20 @@ internal class InferenceEngineImpl private constructor(
     /**
      * Send plain text user prompt to LLM, which starts generating tokens in a [Flow]
      */
+    override suspend fun countTokens(text: String): Int = withContext(llamaDispatcher) {
+        check(_state.value is InferenceEngine.State.ModelReady)
+        tokenCount(text)
+    }
+
+    override fun requestStop() {
+        _cancelGeneration = true
+        if (nativeReady) signalStop(true)
+    }
+
     override fun sendUserPrompt(
         message: String,
         predictLength: Int,
+        grammar: String,
     ): Flow<String> = flow {
         require(message.isNotEmpty()) { "User prompt discarded due to being empty!" }
         check(_state.value is InferenceEngine.State.ModelReady) {
@@ -224,11 +247,18 @@ internal class InferenceEngineImpl private constructor(
         }
 
         try {
+            kotlinx.coroutines.currentCoroutineContext().ensureActive()
+            _cancelGeneration = false
+            signalStop(false)
+            check(setGrammar(grammar)==0) { "Cannot initialize constrained sampler" }
+            kotlinx.coroutines.currentCoroutineContext().ensureActive()
             Log.i(TAG, "Sending user prompt...")
             _readyForSystemPrompt = false
             _state.value = InferenceEngine.State.ProcessingUserPrompt
 
-            processUserPrompt(message, predictLength).let { result ->
+            nativeOperation({requestStop()}) {processUserPrompt(message,predictLength)}.let { result ->
+                kotlinx.coroutines.currentCoroutineContext().ensureActive()
+                if (_cancelGeneration) throw CancellationException("Generation cancelled")
                 if (result != 0) {
                     Log.e(TAG, "Failed to process user prompt: $result")
                     throw IOException("Native prompt processing failed: $result")
@@ -295,6 +325,8 @@ internal class InferenceEngineImpl private constructor(
                 }
 
                 is InferenceEngine.State.Error -> {
+                    check(nativeReady) { "Native initialization failed; restart the app before retrying" }
+                    unload()
                     Log.i(TAG, "Resetting error states...")
                     _state.value = InferenceEngine.State.Initialized
                     Log.i(TAG, "States reset!")
@@ -313,12 +345,13 @@ internal class InferenceEngineImpl private constructor(
         _cancelGeneration = true
         runBlocking(llamaDispatcher) {
             _readyForSystemPrompt = false
-            when(_state.value) {
+            if(nativeReady) when(_state.value) {
                 is InferenceEngine.State.Uninitialized -> {}
                 is InferenceEngine.State.Initialized -> shutdown()
                 else -> { unload(); shutdown() }
             }
         }
+        nativeReady=false
         llamaScope.cancel()
         instance = null
     }

@@ -20,8 +20,9 @@ android {
         applicationId = "org.offlineatlas.preview"
         minSdk = 30
         targetSdk = 35
-        versionCode = 21
-        versionName = "0.1.20"
+        versionCode = 36
+        versionName = "0.2.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
@@ -36,6 +37,9 @@ android {
     packaging { jniLibs { useLegacyPackaging = true } }
 }
 dependencies {
+    androidTestImplementation("androidx.test:runner:1.6.2")
+    androidTestImplementation("androidx.test.ext:junit:1.2.1")
+    androidTestImplementation("junit:junit:4.13.2")
     implementation(project(":llama-lib"))
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.9.0")
 }
@@ -46,7 +50,7 @@ val generateBundledIndex by tasks.registering(Exec::class) {
     workingDir = rootProject.projectDir
     commandLine("python3", "tools/build_index.py", "--documents", "data/sample_documents.jsonl",
         "--places", "data/sample_places.jsonl", "--output", "app/src/main/assets/atlas.db")
-    inputs.files(rootProject.file("tools/build_index.py"), rootProject.file("data/sample_documents.jsonl"),
+    inputs.files(rootProject.file("tools/build_index.py"),rootProject.file("tools/text_passages.py"), rootProject.file("data/sample_documents.jsonl"),
         rootProject.file("data/sample_places.jsonl"))
     outputs.file(file("src/main/assets/atlas.db"))
 }

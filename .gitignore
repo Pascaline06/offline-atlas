@@ -9,3 +9,9 @@ __pycache__/
 *.jks
 *.gguf
 *.apk
+
+# Workspace recovery metadata and extracted vendored sources
+SNAPSHOT.json
+third_party/llama.cpp/
+third_party/llama-pilot-full/
+third_party/llama-probe/

@@ -8,6 +8,10 @@ public final class ComparisonQueryCases {
         assertPair("Compare Tokyo and Kyoto for a first visit","Tokyo","Kyoto");
         assertPair("Compare Machu Picchu and Angkor Wat","Machu Picchu","Angkor Wat");
         assertPair("Photosynthesis vs respiration","Photosynthesis","respiration");
+        assertPair("How do antibiotics and vaccines differ?","antibiotics","vaccines");
+        assertPair("How do boiling and filtration differ in making water safer?","boiling","filtration");
+        assertPair("Compare boiling and water filters","boiling","water filters");
+        assertPair("Explain how malaria differs from dengue fever","malaria","dengue fever");
         if (ComparisonQuery.parse("Why is the sky blue?")!=null) throw new AssertionError("Not a comparison");
     }
     private static void assertPair(String question,String first,String second) {

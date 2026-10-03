@@ -5,15 +5,27 @@ import datetime as dt
 import json
 import sqlite3
 from pathlib import Path
+from text_passages import passages
 
 SCHEMA = """
 PRAGMA journal_mode=DELETE;
+PRAGMA foreign_keys=ON;
+CREATE TABLE pack_metadata(key TEXT PRIMARY KEY,value TEXT NOT NULL);
 CREATE TABLE documents(id TEXT PRIMARY KEY, title TEXT NOT NULL, body TEXT NOT NULL,
  source TEXT NOT NULL, source_date TEXT NOT NULL, license TEXT NOT NULL);
 CREATE INDEX documents_id_lower ON documents(lower(id));
 CREATE VIRTUAL TABLE doc_search USING fts4(title, body, content='documents', tokenize=unicode61);
 CREATE TRIGGER docs_ai AFTER INSERT ON documents BEGIN
  INSERT INTO doc_search(rowid,title,body) VALUES (new.rowid,new.title,new.body);
+END;
+CREATE TABLE passages(document_id TEXT NOT NULL REFERENCES documents(id),
+ ordinal INTEGER NOT NULL, title TEXT NOT NULL, text TEXT NOT NULL,
+ UNIQUE(document_id,ordinal));
+CREATE INDEX passages_document ON passages(document_id);
+CREATE INDEX documents_title_lower ON documents(lower(title));
+CREATE VIRTUAL TABLE passage_search USING fts4(title,text,content='passages',tokenize=porter);
+CREATE TRIGGER passages_ai AFTER INSERT ON passages BEGIN
+ INSERT INTO passage_search(rowid,title,text) VALUES(new.rowid,new.title,new.text);
 END;
 CREATE TABLE places(id TEXT PRIMARY KEY, name TEXT NOT NULL, city TEXT NOT NULL,
  country TEXT NOT NULL, lat REAL NOT NULL, lon REAL NOT NULL,
@@ -33,6 +45,9 @@ END;
 
 
 def records(path):
+    if not isinstance(path,(str,Path,list,tuple)):
+        yield from path
+        return
     if isinstance(path, (list, tuple)):
         for item in path:
             yield from records(item)
@@ -64,14 +79,20 @@ def build(documents, places, output, cities=None):
     try:
         with sqlite3.connect(temp) as con:
             con.executescript(SCHEMA)
+            fixtures=0
             for item in records(documents):
                 validate_common(item)
+                fixtures += int("TEST ONLY" in item["license"])
                 if not item.get("title") or not item.get("body"):
                     raise ValueError(f"{item['id']}: missing title or body")
                 con.execute("INSERT INTO documents VALUES (?,?,?,?,?,?)", tuple(item[k] for k in
                     ("id", "title", "body", "source", "source_date", "license")))
+                con.executemany("INSERT INTO passages VALUES (?,?,?,?)",
+                    ((item["id"], ordinal, item["title"], text)
+                     for ordinal, text in enumerate(passages(item["body"]))))
             for item in records(places):
                 validate_common(item)
+                fixtures += int("TEST ONLY" in item["license"])
                 for key in ("name", "city", "country"):
                     if not item.get(key):
                         raise ValueError(f"{item['id']}: missing {key}")
@@ -96,9 +117,17 @@ def build(documents, places, output, cities=None):
                                 fields[1],fields[2],fields[8],float(fields[4]),float(fields[5]),int(fields[14])))
                         except ValueError:
                             continue
-            con.execute("PRAGMA user_version=4")
+            metadata={"schema":"5","fixture_count":str(fixtures),
+                "articles":str(con.execute('SELECT count(*) FROM documents').fetchone()[0]),
+                "passages":str(con.execute('SELECT count(*) FROM passages').fetchone()[0]),
+                "places":str(con.execute('SELECT count(*) FROM places').fetchone()[0]),
+                "first_snapshot":con.execute('SELECT min(source_date) FROM documents').fetchone()[0] or "",
+                "last_snapshot":con.execute('SELECT max(source_date) FROM documents').fetchone()[0] or ""}
+            con.executemany('INSERT INTO pack_metadata VALUES (?,?)',metadata.items())
+            con.execute("PRAGMA user_version=5")
             con.execute("INSERT INTO doc_search(doc_search) VALUES('optimize')")
             con.execute("INSERT INTO place_search(place_search) VALUES('optimize')")
+            con.execute("INSERT INTO passage_search(passage_search) VALUES('optimize')")
             if con.execute('PRAGMA integrity_check').fetchone()[0] != 'ok':
                 raise ValueError('SQLite integrity check failed')
         temp.replace(output)

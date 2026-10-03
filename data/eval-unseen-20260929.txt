@@ -1,0 +1,102 @@
+# Frozen before the article-first retrieval redesign. Do not tune on these questions.
+# Five blocks of 20: earth/physics, life/health, history, practical technology, rail routes.
+Why do volcanoes have different types of eruptions?
+How do earthquakes produce seismic waves?
+Why is the sky red at sunset?
+How does a thunderstorm develop?
+What causes a solar flare?
+How do ocean currents form?
+Why are some stars red and others blue?
+How does a lunar eclipse occur?
+Why does the Moon sometimes appear in daylight?
+How does a geyser erupt?
+What causes a landslide?
+How does the water cycle produce rain?
+Why does fog form near the ground?
+How do tides affect coastal water levels?
+Why does the atmosphere hold heat?
+How does a mountain form?
+What causes the northern lights?
+Why does a mirror reflect light?
+How does a river form a delta?
+Why do some rocks contain fossils?
+How does insulin lower blood sugar?
+Why do people get a fever?
+How does the stomach digest food?
+How does the immune system respond to a virus?
+Why does exercise raise heart rate?
+How do lungs move air in and out?
+Why do some bacteria become resistant to antibiotics?
+How do plants turn sunlight into sugar?
+Why does a wound become inflamed?
+How do nerves carry signals?
+What causes anemia?
+How do mosquitoes transmit dengue?
+How does a vaccine create immune memory?
+Why do leaves lose water?
+How do roots take up minerals?
+Why does dehydration cause thirst?
+How does a virus enter a cell?
+What causes food poisoning?
+How do bees pollinate flowers?
+Why does a muscle cramp?
+Why did the Western Roman Empire decline?
+What caused the Protestant Reformation?
+Why did the Black Death spread across Europe?
+How did the Industrial Revolution change cities?
+What led to the American Revolution?
+Why did the Soviet Union break apart?
+How did the Silk Road affect trade?
+What caused the First Opium War?
+Why did the Aztec Empire fall?
+How did the steam engine change transportation?
+Why did the Great Fire of London spread so quickly?
+What caused the 2008 banking crisis?
+How did the transatlantic slave trade affect West Africa?
+Why did the Qing dynasty collapse?
+How did the Meiji Restoration change Japan?
+Why did the Berlin Blockade end?
+What caused the partition of India?
+How did the telegraph change communication?
+Why did the Ottoman Empire join World War I?
+What led to the abolition of slavery in Britain?
+How does a solar cell turn light into electricity?
+Why does a lithium-ion battery charge slowly near full capacity?
+How does a diesel engine ignite fuel?
+Why does a computer get hot while working?
+How does a water pump move water uphill?
+What causes a circuit breaker to trip?
+How does a camera focus an image?
+Why does a plane need a runway to take off?
+How does a refrigerator remove heat?
+How does a GPS receiver find its location?
+Why does a bridge expand in summer?
+How does a washing machine spin water out of clothes?
+What causes a car tire to lose pressure?
+How does a radio transmit sound?
+Why does a password manager use encryption?
+How does a wind turbine turn wind into electricity?
+How does a flashlight make light?
+Why does an LED need less electricity than an incandescent bulb?
+How does a thermostat control heating?
+What causes a phone battery to degrade?
+How can I travel from Paris to Marseille by train?
+How can I travel from London to Bristol by train?
+How can I travel from Tokyo to Nagoya by train?
+How can I travel from Rome to Naples by train?
+How can I travel from Delhi to Jaipur by train?
+How can I travel from Berlin to Hamburg by train?
+How can I travel from Madrid to Seville by train?
+How can I travel from Lisbon to Porto by train?
+How can I travel from New York to Washington by train?
+How can I travel from Sydney to Canberra by train?
+How can I travel from Cairo to Luxor by train?
+How can I travel from Amsterdam to Utrecht by train?
+How can I travel from Beijing to Tianjin by train?
+How can I travel from Mumbai to Ahmedabad by train?
+How can I travel from Seoul to Daegu by train?
+How can I travel from Milan to Bologna by train?
+How can I travel from Vienna to Salzburg by train?
+How can I travel from Toronto to Ottawa by train?
+How can I travel from Bangkok to Ayutthaya by train?
+How can I travel from Zurich to Bern by train?

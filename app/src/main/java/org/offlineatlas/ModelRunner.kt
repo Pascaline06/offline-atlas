@@ -1,86 +1,113 @@
 package org.offlineatlas
-
 import android.content.Context
 import com.arm.aichat.AiChat
 import com.arm.aichat.InferenceEngine
+import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withTimeout
-import kotlinx.coroutines.TimeoutCancellationException
+import java.util.concurrent.atomic.AtomicReference
 import java.util.function.Consumer
 
-/** Local GGUF inference. Called only from MainActivity's single background worker. */
+/** In-process inference: no sockets, APIs, Play Services, or network dependency. */
 class ModelRunner(context: Context) {
     private val engine = AiChat.getInferenceEngine(context)
-    private var loaded = false
+    @Volatile private var loaded = false
+    private val active = AtomicReference<Job?>(null)
     private var rejectedDraft: String? = null
-
+    private var usedEvidence = ""
     fun rejectedDraft(): String? = rejectedDraft
-
+    fun evidenceUsed(): String = usedEvidence
+    fun isReady(): Boolean = loaded && engine.state.value is InferenceEngine.State.ModelReady
     fun load(path: String) = runBlocking {
-        if (loaded || engine.state.value is InferenceEngine.State.ModelReady) { engine.cleanUp(); loaded = false }
-        try {
-            withTimeout(30_000) { engine.state.first { it is InferenceEngine.State.Initialized || it is InferenceEngine.State.Error } }
-        } catch (_: TimeoutCancellationException) {
-            throw IllegalStateException("Native inference engine did not initialize within 30 seconds")
+        loaded = false
+        if (engine.state.value is InferenceEngine.State.ModelReady || engine.state.value is InferenceEngine.State.Error)
+            engine.cleanUp()
+        withTimeout(30_000) {
+            engine.state.first { it is InferenceEngine.State.Initialized || it is InferenceEngine.State.Error }
         }
         val state = engine.state.value
-        if (state is InferenceEngine.State.Error) throw IllegalStateException("Native inference engine failed to initialize: ${state.exception.javaClass.simpleName}: ${state.exception.message ?: "no detail"}")
+        check(state !is InferenceEngine.State.Error) { "Inference initialization failed: $state" }
         engine.loadModel(path)
-        engine.setSystemPrompt("You answer offline research questions using only numbered evidence. Cite each factual sentence. Never invent a source, venue, hours, ranking, or current fact. If the excerpts do not answer the question, say so. Keep answers below 65 words and end with a full stop.")
+        engine.setSystemPrompt(PromptPolicy.SYSTEM)
         loaded = true
     }
-
-    fun answer(question: String, evidence: String, onProgress: Consumer<String>): String = runBlocking {
-        check(loaded) { "Select a GGUF model first" }
+    fun cancel() { engine.requestStop(); active.get()?.cancel() }
+    fun answer(question: String, evidence: String, comparison: Boolean, allowKnowledge: Boolean, onProgress: Consumer<String>): String = runBlocking {
+        check(isReady()) { "The local model is not ready" }
         rejectedDraft = null
-        var mostRecentDraft = ""
-        try {
-            withTimeout(120_000) {
-                val comparison = evidence.contains("[2]")
-                val instruction = if (comparison)
-                    "Compare one shared attribute covered by BOTH excerpts. Write one sentence using 'whereas' or 'while' to state each side of the difference. Place [1] AFTER the fact from excerpt 1 and [2] AFTER the fact from excerpt 2. Do not output URLs, source labels, snapshot dates, or unrelated claims."
-                else "Answer in one or two complete sentences. Cite [1]. Use only the supplied excerpt."
-                val first = generate(question, evidence, instruction, 192, onProgress)
-                mostRecentDraft = first
-                val review = AnswerReview.check(first, evidence, comparison)
-                if (review.accepted()) return@withTimeout review.text
-
-                onProgress.accept("First draft failed the evidence check (${review.reason}). Retrying once…")
-                val retryInstruction = if (comparison)
-                    "Write exactly one sentence in this form: 'Subject A uses X [1], whereas subject B uses Y [2].' Replace X and Y with supported facts about the same attribute. Citations must come AFTER the facts. Do not output URLs, dates, or source labels."
-                else "Write one short factual sentence supported by the excerpt, cite [1], and finish with a period."
-                val retry = generate(question, evidence, retryInstruction, 128, onProgress)
-                mostRecentDraft = retry
-                val secondReview = AnswerReview.check(retry, evidence, comparison)
-                if (secondReview.accepted()) secondReview.text
-                else {
-                    rejectedDraft = "First attempt (${review.reason}):\n${first.take(1000)}\n\nRetry (${secondReview.reason}):\n${retry.take(1000)}"
-                    "Local model answer rejected (${secondReview.reason}). The cited source summary above is available; the model has not answered this question."
+        usedEvidence = evidence
+        val task=async(start=CoroutineStart.LAZY) {
+            withTimeout(90_000) {
+                var result = if(evidence.isNotBlank() && allowKnowledge) {
+                    try { withTimeout(55_000) { attempt(question,evidence,comparison,onProgress) } }
+                    catch (_: TimeoutCancellationException) {
+                        engine.requestStop()
+                        "Local model answer rejected (source attempt exceeded 55 seconds)."
+                    }
+                } else attempt(question,evidence,comparison,onProgress)
+                currentCoroutineContext().ensureActive()
+                if(allowKnowledge && evidence.isNotBlank() && result.startsWith("Local model answer rejected") && isReady()) {
+                    rejectedDraft=(rejectedDraft ?: "") + "\nSource attempt: " + result
+                    usedEvidence=""
+                    onProgress.accept("Source attempt was not verified. Trying stable local model knowledge without source citations…")
+                    result=attempt(question,"",false,onProgress)
                 }
+                result
             }
-        } catch (_: TimeoutCancellationException) {
-            rejectedDraft = if (mostRecentDraft.isNotBlank()) mostRecentDraft.take(1000) else null
-            "Local model answer rejected (two-minute limit). Use the cited source summary above."
         }
+        active.set(task)
+        task.start()
+        try { task.await() } catch (_: TimeoutCancellationException) {
+            engine.requestStop()
+            "Local model answer rejected (90-second total limit)."
+        } catch (_: CancellationException) {
+            engine.requestStop()
+            "Local model answer cancelled."
+        } finally { active.compareAndSet(task,null) }
     }
-
-    private suspend fun generate(question: String, evidence: String, instruction: String,
-                                 limit: Int, onProgress: Consumer<String>): String {
-        val result = StringBuilder()
-        var lastUpdate = 0L
-        engine.sendUserPrompt("Question: $question\n\nLocal evidence:\n$evidence\n\n$instruction\nAnswer:", limit)
-            .collect {
-                result.append(it)
-                val now = android.os.SystemClock.elapsedRealtime()
-                if (now-lastUpdate>=1200L) {
-                    onProgress.accept(result.toString())
-                    lastUpdate=now
-                }
+    private suspend fun attempt(question: String, evidence: String, comparison: Boolean, progress: Consumer<String>): String {
+        usedEvidence=evidence
+        fun prompt()=PromptPolicy.answer(question,usedEvidence,comparison)
+        while(engine.countTokens(prompt())>1400 && usedEvidence.isNotEmpty()) {
+            val last=Regex("(?m)^\\[\\d+\\] ").findAll(usedEvidence).lastOrNull()
+            usedEvidence=if(last!=null && last.range.first>0) usedEvidence.substring(0,last.range.first).trimEnd() else ""
+        }
+        if(evidence.isNotBlank() && usedEvidence.isBlank())
+            return "Local model answer rejected (source context exceeds token budget)."
+        check(engine.countTokens(prompt())<=1400) { "Question exceeds the model context budget" }
+        val grammar=if(usedEvidence.isBlank()) "" else JsonClaims.grammar(AnswerReview.sources(usedEvidence).keys)
+        val draft=generate(prompt(),256,Consumer { partial -> progress.accept(if(usedEvidence.isBlank()) partial else JsonClaims.preview(partial)) },grammar)
+        val plain=if(usedEvidence.isBlank()) draft else try {JsonClaims.render(draft,usedEvidence)} catch(error: IllegalArgumentException) {
+            rejectedDraft=draft
+            return "Local model answer rejected (incomplete structured claims)."
+        }
+        val reviewed=AnswerReview.check(plain,usedEvidence,comparison && usedEvidence.isNotBlank())
+        if(!reviewed.accepted()) {
+            rejectedDraft=(rejectedDraft ?: "")+"\n"+draft
+            return "Local model answer rejected ("+reviewed.reason+")."
+        }
+        if(usedEvidence.isNotBlank()) {
+            val checkPrompt=PromptPolicy.verify(usedEvidence,reviewed.text)
+            if(engine.countTokens(checkPrompt)>2400) {
+                rejectedDraft=draft
+                return "Local model answer rejected (verification context exceeds token budget)."
             }
-        return result.toString()
+            val verdict=PromptPolicy.parseVerdict(generate(checkPrompt,96,Consumer { },JsonClaims.VERDICT_GRAMMAR))
+            if(verdict!="SUPPORTED") {
+                rejectedDraft=draft
+                return "Local model answer rejected (local source check: $verdict)."
+            }
+        }
+        return reviewed.text
     }
-
-    fun close() { if (loaded) engine.destroy() }
+    private suspend fun generate(prompt: String, limit: Int, progress: Consumer<String>, grammar: String = ""): String {
+        val text=StringBuilder();var last=0L
+        engine.sendUserPrompt(prompt,limit,grammar).collect {
+            text.append(it)
+            val now=android.os.SystemClock.elapsedRealtime()
+            if(last==0L || now-last>=250) { progress.accept(text.toString());last=now }
+        }
+        return text.toString()
+    }
+    fun close() { cancel(); loaded=false; engine.destroy() }
 }

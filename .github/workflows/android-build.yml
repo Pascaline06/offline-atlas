@@ -2,11 +2,14 @@ name: Android debug APK
 on:
   push:
   workflow_dispatch:
+concurrency:
+  group: android-build-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   build:
     runs-on: ubuntu-latest
     permissions:
-      contents: read
+      contents: write
     steps:
       - uses: actions/checkout@v4
       - name: Restore pinned vendored llama.cpp source
@@ -45,14 +48,8 @@ jobs:
         env:
           ATLAS_PREVIEW_KEY_PASSWORD: ${{ secrets.ATLAS_PREVIEW_KEY_PASSWORD }}
         run: |
-          python3 -m unittest discover -s tests -v
-          mkdir -p build/review-tests
-          javac -d build/review-tests app/src/main/java/org/offlineatlas/AnswerReview.java tests/AnswerReviewCases.java app/src/main/java/org/offlineatlas/ComparisonQuery.java tests/ComparisonQueryCases.java
-          java -cp build/review-tests org.offlineatlas.AnswerReviewCases
-          java -cp build/review-tests org.offlineatlas.ComparisonQueryCases
-          javac -d build/review-tests app/src/main/java/org/offlineatlas/WikiText.java app/src/main/java/org/offlineatlas/ResearchEvidence.java tests/ResearchEvidenceCases.java
-          java -cp build/review-tests org.offlineatlas.ResearchEvidenceCases
-          gradle --no-daemon :app:assembleDebug
+          python3 tools/check.py
+          ./gradlew --no-daemon :llama-lib:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidTest
           unzip -Z1 app/build/outputs/apk/debug/app-debug.apk | grep -qx 'assets/atlas.db'
           "$ANDROID_HOME/build-tools/35.0.0/aapt" dump permissions app/build/outputs/apk/debug/app-debug.apk | tee permissions.txt
           if grep -q 'android.permission.INTERNET' permissions.txt; then exit 1; fi
@@ -71,3 +68,18 @@ jobs:
             apk.sha256
             permissions.txt
             signing.txt
+            app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
+      - name: Publish signed preview for phone validation
+        if: success() && steps.signing.outputs.ready == 'true' && github.ref == 'refs/heads/codex/offline-atlas-completion'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          cp app/build/outputs/apk/debug/app-debug.apk offline-atlas-0.2.0.apk
+          cp app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk offline-atlas-0.2.0-tests.apk
+          sha256sum offline-atlas-0.2.0*.apk > APK-SHA256SUMS
+          CURRENT_HEAD=$(gh api "repos/$GITHUB_REPOSITORY/git/ref/heads/codex/offline-atlas-completion" --jq '.object.sha')
+          if [ "$CURRENT_HEAD" != "$GITHUB_SHA" ]; then
+            echo 'A newer code revision exists; leave this APK as a CI artifact and publish the newer build.'
+            exit 0
+          fi
+          gh release create "v0.2.0-preview.${GITHUB_RUN_NUMBER}" --target "$GITHUB_SHA" --prerelease --title 'Offline Atlas 0.2 phone-validation preview' --notes 'Signed arm64 Android preview. Install knowledge pack and the supported model separately. No Internet permission or Play Services dependency. Current real-device, latency, memory and independent whole-answer quality gates remain open; this release is not a bounty claim. README and docs/DEVICE-VALIDATION.md describe installation and validation.' offline-atlas-0.2.0.apk offline-atlas-0.2.0-tests.apk APK-SHA256SUMS permissions.txt signing.txt

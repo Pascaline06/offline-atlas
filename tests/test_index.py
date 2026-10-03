@@ -174,11 +174,11 @@ class IndexTests(unittest.TestCase):
     def test_failed_rebuild_preserves_usable_pack(self):
         documents = Path(self.temp.name) / "bad.jsonl"
         documents.write_text('{"id":"bad"}\n')
-        self.assertEqual(self.con.execute('PRAGMA user_version').fetchone()[0], 4)
+        self.assertEqual(self.con.execute('PRAGMA user_version').fetchone()[0], 5)
         with self.assertRaises(ValueError):
             build(documents, ROOT / "data/sample_places.jsonl", self.path)
         self.assertEqual(self.con.execute('PRAGMA integrity_check').fetchone()[0], 'ok')
-        self.assertEqual(sqlite3.connect(self.path).execute('PRAGMA user_version').fetchone()[0], 4)
+        self.assertEqual(sqlite3.connect(self.path).execute('PRAGMA user_version').fetchone()[0], 5)
 
     def test_cirrus_import_preserves_article_license_and_url(self):
         shard=Path(self.temp.name)/'voyage.json'
