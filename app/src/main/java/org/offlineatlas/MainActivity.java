@@ -51,25 +51,30 @@ public final class MainActivity extends Activity {
     private Switch knowledge;
     private volatile boolean destroyed=false;
     private TextView dataStatus;
+    private LinearLayout settings;
     private static final int OPEN_PACK=11;
     private static final int OPEN_MODEL=12;
     private static final int EXPORT_RESULTS=13;
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
-        LinearLayout root=new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setPadding(22,24,22,12);
+        LinearLayout root=new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setPadding(22,24,22,12); root.setBackgroundColor(0xfffafbf7);
         TextView heading=label("Offline Atlas",26); root.addView(heading);
         dataStatus=label("Offline only · checking local search index",14); root.addView(dataStatus);
         input=new EditText(this); input.setFilters(new InputFilter[]{new InputFilter.LengthFilter(2000)}); input.setSingleLine(false); input.setMinLines(2); input.setHint("Ask a question or search vegan restaurants in a city"); input.setImeOptions(EditorInfo.IME_ACTION_SEARCH); root.addView(input);
-        search=new Button(this); search.setText("Search offline"); search.setEnabled(false); root.addView(search);
-        install=new Button(this); install.setText("Install knowledge pack (ZIP or select all parts)"); install.setEnabled(false); root.addView(install);
-        knowledge=new Switch(this); knowledge.setText("Allow answers from local model knowledge without source support"); knowledge.setChecked(getPreferences(0).getBoolean("knowledge",true)); root.addView(knowledge);
-        knowledge.setOnCheckedChangeListener((button,checked)->getPreferences(0).edit().putBoolean("knowledge",checked).apply());
-        stop=new Button(this); stop.setText("Stop answer"); stop.setEnabled(false); root.addView(stop);
+        LinearLayout actions=new LinearLayout(this); actions.setOrientation(LinearLayout.HORIZONTAL); root.addView(actions);
+        search=new Button(this); search.setText("Search offline"); search.setEnabled(false); actions.addView(search,new LinearLayout.LayoutParams(0,-2,1));
+        stop=new Button(this); stop.setText("Stop answer"); stop.setEnabled(false); stop.setVisibility(View.GONE); actions.addView(stop);
         stop.setOnClickListener(view -> {if(modelRunner!=null) modelRunner.cancel(); stop.setEnabled(false);});
-        modelButton=new Button(this); modelButton.setText("Add supported language model"); modelButton.setEnabled(false); root.addView(modelButton);
+        Button settingsToggle=new Button(this); settingsToggle.setText("Assets and settings"); root.addView(settingsToggle);
+        settings=new LinearLayout(this); settings.setOrientation(LinearLayout.VERTICAL); settings.setVisibility(View.GONE); root.addView(settings);
+        settingsToggle.setOnClickListener(view -> settings.setVisibility(settings.getVisibility()==View.VISIBLE ? View.GONE : View.VISIBLE));
+        install=new Button(this); install.setText("Install knowledge pack (ZIP or select all parts)"); install.setEnabled(false); settings.addView(install);
+        knowledge=new Switch(this); knowledge.setText("Allow answers from local model knowledge without source support"); knowledge.setChecked(getPreferences(0).getBoolean("knowledge",true)); settings.addView(knowledge);
+        knowledge.setOnCheckedChangeListener((button,checked)->getPreferences(0).edit().putBoolean("knowledge",checked).apply());
+        modelButton=new Button(this); modelButton.setText("Add supported language model"); modelButton.setEnabled(false); settings.addView(modelButton);
         exportButton=new Button(this); exportButton.setText("Export test results");
-        exportButton.setEnabled(evaluationFile().length()>0); root.addView(exportButton);
+        exportButton.setEnabled(evaluationFile().length()>0); settings.addView(exportButton);
         ScrollView scroll=new ScrollView(this); output=new LinearLayout(this); output.setOrientation(LinearLayout.VERTICAL); scroll.addView(output);
         root.addView(scroll,new LinearLayout.LayoutParams(-1,0,1)); setContentView(root);
         search.setOnClickListener(view -> runSearch());
@@ -224,7 +229,7 @@ public final class MainActivity extends Activity {
                     if (answer.quickAnswer!=null) output.addView(label(answer.quickAnswer,18));
                     if (citedText!=null) output.addView(citedText);
                     if(fresh) output.addView(label(QueryPolicy.freshnessNotice(),18));
-                    if (generate) { modelText.setText(grounded ? "Writing from offline sources…" : "Answering from local model knowledge; no source citations available…"); output.addView(modelText); stop.setEnabled(true); }
+                    if (generate) { settings.setVisibility(View.GONE); stop.setVisibility(View.VISIBLE); modelText.setText(grounded ? "Writing from offline sources…" : "Answering from local model knowledge; no source citations available…"); output.addView(modelText); stop.setEnabled(true); }
                     output.addView(label(answer.notice+"\n"+(travelQuestion ? answer.results.size()+" leads · " : "")+"Local retrieval: "+retrievalMs+" ms",16));
                     int sourceNumber=0;
                     for (AtlasRepository.Result result:answer.results) {
@@ -334,7 +339,7 @@ public final class MainActivity extends Activity {
                 retrievalMs,firstTextMs,totalMs,pssKiB,
                 modelUsed && modelRunner!=null ? modelRunner.evidenceUsed() : "",
                 AssetBudget.bytes(getFilesDir())+AssetBudget.bytes(getCacheDir())+new File(getApplicationInfo().sourceDir).length()+AssetBudget.bytes(new File(getApplicationInfo().nativeLibraryDir)),
-                repository==null ? 0 : repository.packSize());
+                repository==null ? 0 : repository.packSize(),repository==null ? null : repository.packFingerprint());
             ui(() -> exportButton.setEnabled(true));
         } catch(Exception error) {
             ui(() -> output.addView(label("Could not save this test result: "+error.getMessage(),14)));
@@ -384,7 +389,7 @@ public final class MainActivity extends Activity {
         modelButton.setEnabled(!busy && repository!=null);
         knowledge.setEnabled(!busy);input.setEnabled(!busy);
         exportButton.setEnabled(!busy && evaluationFile().length()>0);
-        if(!busy) stop.setEnabled(false);
+        if(!busy) {stop.setEnabled(false);stop.setVisibility(View.GONE);}
     }
     private void ui(Runnable action) {
         runOnUiThread(() -> {if(!destroyed) action.run();});

@@ -1,0 +1,14 @@
+Offline Atlas notices
+
+Original project code is covered by LICENSE. Dependency code and assets retain their licenses:
+
+- llama.cpp and the adapted Android inference example: MIT; commit 2145525a4081d66ff1a87cf43ef809f95a85ac0c. Vendored source archives include upstream notices. https://github.com/ggml-org/llama.cpp
+- Gradle wrapper/distribution: Apache-2.0. https://github.com/gradle/gradle
+- Kotlin and kotlinx.coroutines: Apache-2.0. https://github.com/JetBrains/kotlin and https://github.com/Kotlin/kotlinx.coroutines
+- Android Gradle Plugin and SDK tooling: upstream Android licenses; downloaded during build, not redistributed as the app's own code.
+- Qwen3-4B-Instruct-2507: Apache-2.0 per model card; GGUF conversion by Unsloth. Model manifest records the exact downloadable file/checksum. https://huggingface.co/Qwen/Qwen3-4B-Instruct-2507 and https://huggingface.co/unsloth/Qwen3-4B-Instruct-2507-GGUF
+- Default mirror corpus: wikimedia/wikipedia, 20231101.simple and one 20231101.en shard. Dataset card declares CC BY-SA 3.0 and GFDL. Wikipedia contributors retain authorship; each stored article URL provides attribution and revision history. Source inputs, exact hashes, processing caps and download URLs accompany the public pack. https://huggingface.co/datasets/wikimedia/wikipedia
+- Alternative current Wikimedia Cirrus imports: CC BY-SA 4.0 as documented in each record and resulting source-inputs.json. Retain contributor attribution and ShareAlike obligations when redistributing text/indexes.
+- Optional OpenStreetMap records: ODbL 1.0; attribution to OpenStreetMap contributors. Optional GeoNames data: CC BY 4.0. These are not included in the current default pack.
+
+The MIT project license does not relicense model weights, article text, databases or upstream components. Redistributed knowledge packs retain their source licensing obligations. Article source/reference URLs are metadata; the Android app does not visit them during use.

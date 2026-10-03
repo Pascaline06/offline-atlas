@@ -62,6 +62,7 @@ final class AtlasRepository implements AutoCloseable {
         boolean checked=context.getSharedPreferences("index_validation",0).getLong("size",-1)==file.length()
             && context.getSharedPreferences("index_validation",0).getLong("mtime",-1)==file.lastModified();
         database=openAndValidate(file,!checked);
+        if(!checked) context.getSharedPreferences("index_validation",0).edit().remove("sha256").apply();
         rememberValidation();
     }
 
@@ -128,6 +129,7 @@ final class AtlasRepository implements AutoCloseable {
         temp.delete();
         AssetBudget.requireSpace(file.getParentFile(),0);
         maximum=Math.min(maximum,AssetBudget.PRIVATE_LIMIT-AssetBudget.bytes(file.getParentFile()));
+        String checksum;
         try {
             try (InputStream stream=opened) {
                 java.io.BufferedInputStream buffered=new java.io.BufferedInputStream(stream);
@@ -141,37 +143,49 @@ final class AtlasRepository implements AutoCloseable {
                         ZipEntry entry=archive.getNextEntry();
                         if (entry==null || !"atlas.db".equals(entry.getName()) || entry.isDirectory())
                             throw new IllegalArgumentException("ZIP must contain exactly atlas.db");
-                        copyBounded(archive,temp,maximum);
+                        checksum=copyBounded(archive,temp,maximum);
                         archive.closeEntry();
                         if (archive.getNextEntry()!=null) throw new IllegalArgumentException("ZIP must contain exactly one file");
                     }
-                } else copyBounded(buffered,temp,maximum);
+                } else checksum=copyBounded(buffered,temp,maximum);
             }
+            long copiedSize=temp.length(),copiedMtime=temp.lastModified();
             try (SQLiteDatabase checked=openAndValidate(temp); Cursor c=checked.rawQuery("SELECT COUNT(*) FROM documents",null)) {
                 c.moveToFirst();
                 int count=c.getInt(0);
+                if(temp.length()!=copiedSize || temp.lastModified()!=copiedMtime) checksum=null;
                 database.close();
                 try {AssetSwap.install(temp,file);} catch(Exception failure) {database=openAndValidate(file);throw failure;}
                 testData=null;
                 database=openAndValidate(file,false);
                 rememberValidation();
+                context.getSharedPreferences("index_validation",0).edit().putString("sha256",checksum).apply();
                 return count;
             }
         } finally { temp.delete(); }
     }
 
-    private static void copyBounded(InputStream input,File target,long maximum) throws Exception {
+    private static String copyBounded(InputStream input,File target,long maximum) throws Exception {
         long size=0;
+        java.security.MessageDigest digest=java.security.MessageDigest.getInstance("SHA-256");
         try (FileOutputStream output=new FileOutputStream(target)) {
             byte[] buffer=new byte[65536]; int count;
             while ((count=input.read(buffer))!=-1) {
                 size+=count;
                 if (size>maximum) throw new IllegalArgumentException("Index exceeds storage budget including the previous installed assets");
                 if(size % (64L*1024*1024)<65536 && target.getParentFile().getUsableSpace()<AssetBudget.FREE_RESERVE) throw new IllegalArgumentException("Insufficient free storage; previous pack preserved");
-                output.write(buffer,0,count);
+                output.write(buffer,0,count);digest.update(buffer,0,count);
             }
             output.getFD().sync();
         }
+        StringBuilder hash=new StringBuilder();
+        for(byte value:digest.digest()) hash.append(String.format(Locale.ROOT,"%02x",value & 255));
+        return hash.toString();
+    }
+
+    String packFingerprint() {
+        android.content.SharedPreferences prefs=context.getSharedPreferences("index_validation",0);
+        return prefs.getLong("size",-1)==file.length() && prefs.getLong("mtime",-1)==file.lastModified() ? prefs.getString("sha256",null) : null;
     }
 
     boolean containsTestData() {

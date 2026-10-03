@@ -20,13 +20,14 @@ final class EvaluationLog {
                        AtlasRepository.Answer answer,String finalText,String modelOutcome,
                        String rejectedDraft,long retrievalMs,
                        long firstTextMs,long totalMs,int sampledPeakPssKiB,
-                       String modelContext,long installedBytes,long packBytes) throws IOException {
+                       String modelContext,long installedBytes,long packBytes,String packSha256) throws IOException {
         try {
             JSONObject record=new JSONObject();
             record.put("schema",4);
             record.put("model_context",modelContext);
             record.put("installed_app_assets_bytes",installedBytes);
             record.put("pack_bytes",packBytes);
+            record.put("pack_sha256",packSha256==null ? JSONObject.NULL : packSha256);
             record.put("declared_network_mode","no_internet_permission");
             // Network permission is build evidence; airplane-mode proof must be recorded separately.
             try {
