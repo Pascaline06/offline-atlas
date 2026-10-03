@@ -45,9 +45,10 @@ def main(model,binary,output):
             records=[]
             for name,sources,answer,expected in CASES:
                 start=time.monotonic()
-                result=request('http://127.0.0.1:18888/v1/chat/completions',dict(messages=[dict(role='system',content=prompt('system')),dict(role='user',content=prompt('verify',sources,answer))],temperature=0,max_tokens=8,stream=False,grammar=prompt('verdict_grammar')),timeout=180)
-                verdict=result['choices'][0]['message']['content'].strip().upper()
-                records.append(dict(case=name,expected=expected,verdict=verdict,correct_safe_decision=(verdict=="SUPPORTED")== (expected=="SUPPORTED"),exact_verdict_format=verdict in {"SUPPORTED","UNSUPPORTED"},accepted=verdict=="SUPPORTED",seconds=round(time.monotonic()-start,2),sources=sources,answer=answer))
+                result=request('http://127.0.0.1:18888/v1/chat/completions',dict(messages=[dict(role='system',content=prompt('system')),dict(role='user',content=prompt('verify',sources,answer))],temperature=0,max_tokens=96,stream=False,grammar=prompt('verdict_grammar')),timeout=180)
+                assessment=result['choices'][0]['message']['content']
+                verdict=prompt('parse_verdict',assessment)
+                records.append(dict(case=name,expected=expected,verdict=verdict,assessment=assessment,correct_safe_decision=(verdict=="SUPPORTED")== (expected=="SUPPORTED"),exact_verdict_format=verdict in {"SUPPORTED","UNSUPPORTED"},accepted=verdict=="SUPPORTED",seconds=round(time.monotonic()-start,2),sources=sources,answer=answer))
                 print(name,verdict,flush=True)
             Path(output).write_text(''.join(json.dumps(row)+'\n' for row in records))
             failures=[row['case'] for row in records if not row['correct_safe_decision'] or not row['exact_verdict_format']]

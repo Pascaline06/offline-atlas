@@ -1,6 +1,11 @@
 package org.offlineatlas;
 public final class JsonClaimsCases {
     public static void main(String[] args) {
+        String supported="{\"assessment\":\"The cited statement directly supports the claim.\",\"verdict\":\"SUPPORTED\"}";
+        if(!JsonClaims.verdict(supported).equals("SUPPORTED")) throw new AssertionError("Complete assessment");
+        for(String invalid:new String[]{"SUPPORTED",supported+"garbage",supported.replace("SUPPORTED","MAYBE"),supported.replace("The cited statement directly supports the claim.",""),supported.substring(0,supported.length()-1)}) {
+            try {JsonClaims.verdict(invalid);throw new AssertionError("Incomplete evidence check accepted");} catch(IllegalArgumentException expected) { }
+        }
         String sources="[1] A\nA uses solar cells. Cells generate electricity.\n\n[2] B\nB burns fuel.";
         String raw="{\"claims\":[{\"text\":\"A uses solar cells. Cells generate electricity.\",\"sources\":[1]},{\"text\":\"B burns fuel.\",\"sources\":[2]}]}";
         String text=JsonClaims.render(raw,sources);

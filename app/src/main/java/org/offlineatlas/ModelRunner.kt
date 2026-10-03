@@ -92,7 +92,7 @@ class ModelRunner(context: Context) {
                 rejectedDraft=draft
                 return "Local model answer rejected (verification context exceeds token budget)."
             }
-            val verdict=generate(checkPrompt,8,Consumer { },JsonClaims.VERDICT_GRAMMAR).trim().uppercase()
+            val verdict=PromptPolicy.parseVerdict(generate(checkPrompt,96,Consumer { },JsonClaims.VERDICT_GRAMMAR))
             if(verdict!="SUPPORTED") {
                 rejectedDraft=draft
                 return "Local model answer rejected (local source check: $verdict)."

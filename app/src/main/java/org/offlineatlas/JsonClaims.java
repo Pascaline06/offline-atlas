@@ -6,7 +6,15 @@ import java.text.BreakIterator;
 
 /** Small strict parser for the constrained claim format, shared with desktop probes. */
 final class JsonClaims {
-    static final String VERDICT_GRAMMAR="root ::= \"SUPPORTED\" | \"UNSUPPORTED\"\n";
+    static final String VERDICT_GRAMMAR="root ::= \"{\\\"assessment\\\":\" string \",\\\"verdict\\\":\" (\"\\\"SUPPORTED\\\"\" | \"\\\"UNSUPPORTED\\\"\") \"}\"\n"
+        +"string ::= \"\\\"\" ([^\"\\\\\\n\\r] | \"\\\\\" ([\"\\\\/bfnrt] | \"u\" [0-9a-fA-F]{4})){1,240} \"\\\"\"\n";
+    static String verdict(String raw) {
+        Parser parser=new Parser(raw);parser.take('{');parser.key("assessment");String assessment=parser.string();
+        if(assessment.trim().isEmpty() || assessment.length()>240) throw new IllegalArgumentException("Invalid evidence assessment");
+        parser.take(',');parser.key("verdict");String verdict=parser.string();parser.take('}');parser.end();
+        if(!verdict.equals("SUPPORTED") && !verdict.equals("UNSUPPORTED")) throw new IllegalArgumentException("Invalid verdict");
+        return verdict;
+    }
     static String grammar(Set<Integer> sources) {
         if(sources.isEmpty()) throw new IllegalArgumentException("No source identifiers");
         StringJoiner ids=new StringJoiner(" | ");

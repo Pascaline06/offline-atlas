@@ -64,7 +64,7 @@ def run(database,model,binary,output):
                             row['source_draft']=draft;row['structure_reason']=reason
                             if accepted and evidence:
                                 check=prompt('verify',evidence,text)
-                                try: verdict=generate(check,8,prompt('verdict_grammar'),timeout=55-(time.monotonic()-source_start)).strip().upper() if tokens(check)<=2400 else 'CONTEXT_OVERFLOW'
+                                try: verdict=prompt('parse_verdict',generate(check,96,prompt('verdict_grammar'),timeout=55-(time.monotonic()-source_start))) if tokens(check)<=2400 else 'CONTEXT_OVERFLOW'
                                 except TimeoutError: verdict='CHECK_TIMEOUT'
                                 row['verdict']=verdict;accepted=verdict=='SUPPORTED'
                             if accepted:

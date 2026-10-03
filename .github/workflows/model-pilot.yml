@@ -20,15 +20,29 @@ jobs:
       contents: read
     steps:
       - uses: actions/checkout@v4
+      - name: Cache pinned desktop engine and verified weights
+        id: model-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            third_party/llama-pilot-full
+            build/model-pilot
+            ${{ runner.temp }}/model.gguf
+          key: atlas-model-pilot-${{ runner.os }}-${{ runner.arch }}-2145525a-3605803b-v1
       - name: Restore complete pinned llama.cpp and build CPU server
+        id: model-engine
+        if: steps.model-cache.outputs.cache-hit != 'true'
         run: |
           git clone --quiet --filter=blob:none https://github.com/ggml-org/llama.cpp.git third_party/llama-pilot-full
           git -C third_party/llama-pilot-full checkout --quiet 2145525a4081d66ff1a87cf43ef809f95a85ac0c
           cmake -S third_party/llama-pilot-full -B build/model-pilot -DCMAKE_BUILD_TYPE=Release -DGGML_NATIVE=OFF -DLLAMA_BUILD_TESTS=OFF
           cmake --build build/model-pilot --target llama-app -j 2
       - name: Download and verify pinned model
+        id: model-download
         run: |
-          curl --fail --location --retry 3 --retry-delay 5 --output "$RUNNER_TEMP/model.gguf" 'https://huggingface.co/unsloth/Qwen3-4B-Instruct-2507-GGUF/resolve/main/Qwen3-4B-Instruct-2507-Q4_K_M.gguf'
+          if [ ! -f "$RUNNER_TEMP/model.gguf" ]; then
+            curl --fail --location --retry 3 --retry-delay 5 --output "$RUNNER_TEMP/model.gguf" 'https://huggingface.co/unsloth/Qwen3-4B-Instruct-2507-GGUF/resolve/main/Qwen3-4B-Instruct-2507-Q4_K_M.gguf'
+          fi
           printf '%s  %s\n' '3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597' "$RUNNER_TEMP/model.gguf" | sha256sum -c -
       - name: Run eight frozen model-only questions
         run: python3 tools/model_pilot.py "$RUNNER_TEMP/model.gguf" "$PWD/build/model-pilot/bin/llama" model-pilot.jsonl
@@ -42,3 +56,12 @@ jobs:
             model-pilot.jsonl
             source-check-pilot.jsonl
           if-no-files-found: ignore
+      - name: Save verified preparation cache even if model fixtures fail
+        if: always() && steps.model-cache.outputs.cache-hit != 'true' && steps.model-engine.outcome == 'success' && steps.model-download.outcome == 'success'
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            third_party/llama-pilot-full
+            build/model-pilot
+            ${{ runner.temp }}/model.gguf
+          key: ${{ steps.model-cache.outputs.cache-primary-key }}
