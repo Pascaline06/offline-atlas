@@ -8,11 +8,13 @@ import re
 from pathlib import Path
 
 
-def convert(source, output, project, snapshot, max_chars=16000):
+def convert(source, output, project, snapshot, max_chars=250000):
     if project not in {'enwikivoyage', 'simplewiki', 'enwiki'}:
         raise ValueError('Unsupported Wikimedia project')
     if not re.fullmatch(r'\d{8}', snapshot):
         raise ValueError('Snapshot must be YYYYMMDD')
+    if not 1000 <= max_chars <= 1000000:
+        raise ValueError('max_chars must be between 1000 and 1000000')
     count = 0
     opener = bz2.open if str(source).endswith('.bz2') else open
     with opener(source, 'rt', encoding='utf-8', errors='replace') as stream, Path(output).open('w', encoding='utf-8') as target:
@@ -29,19 +31,6 @@ def convert(source, output, project, snapshot, max_chars=16000):
                 continue
             body = html.unescape(re.sub(r'<[^>]+>', ' ', body))
             body = re.sub(r'\s+', ' ', body).strip()
-            if project == 'enwikivoyage' and len(body) > max_chars:
-                # Dining details can occur near the end of a long destination guide.
-                # Keep the opening plus bounded windows around relevant text.
-                windows = []
-                for match in re.finditer(r'\b(?:vegan|vegetarian|plant.based)\b', body, re.I):
-                    if match.start() < max_chars - 5000:
-                        continue
-                    window = body[max(0, match.start()-420):min(len(body), match.end()+650)]
-                    if window not in windows:
-                        windows.append(window)
-                    if len(' '.join(windows)) > 4500:
-                        break
-                body = body[:max_chars-5000] + (' … [later dining excerpts] ' + ' … '.join(windows) if windows else '')
             body = body[:max_chars]
             if len(body) < 80:
                 continue
@@ -64,5 +53,6 @@ if __name__ == '__main__':
     parser.add_argument('output')
     parser.add_argument('--project', required=True, choices=['enwikivoyage', 'simplewiki', 'enwiki'])
     parser.add_argument('--snapshot', required=True, help='Dump date as YYYYMMDD')
+    parser.add_argument('--max-chars', type=int, default=250000)
     args = parser.parse_args()
-    print(convert(args.shard, args.output, args.project, args.snapshot))
+    print(convert(args.shard, args.output, args.project, args.snapshot, args.max_chars))

@@ -38,6 +38,10 @@ interface InferenceEngine {
     /**
      * Unloads the currently loaded model.
      */
+    suspend fun countTokens(text: String): Int
+
+    fun requestStop()
+
     fun cleanUp()
 
     /**
