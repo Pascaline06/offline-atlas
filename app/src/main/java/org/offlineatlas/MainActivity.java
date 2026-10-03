@@ -56,6 +56,9 @@ public final class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
+        // Imports can leave staging files after process death; never retain them indefinitely.
+        new File(getFilesDir(),"incoming-atlas.db").delete();
+        new File(getFilesDir(),"incoming-model.gguf").delete();
         LinearLayout root=new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setPadding(22,24,22,12);
         TextView heading=label("Offline Atlas",26); root.addView(heading);
         dataStatus=label("Offline only · checking local search index",14); root.addView(dataStatus);

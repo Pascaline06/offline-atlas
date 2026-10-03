@@ -9,6 +9,8 @@ from text_passages import passages
 
 SCHEMA = """
 PRAGMA journal_mode=DELETE;
+PRAGMA foreign_keys=ON;
+CREATE TABLE pack_metadata(key TEXT PRIMARY KEY,value TEXT NOT NULL);
 CREATE TABLE documents(id TEXT PRIMARY KEY, title TEXT NOT NULL, body TEXT NOT NULL,
  source TEXT NOT NULL, source_date TEXT NOT NULL, license TEXT NOT NULL);
 CREATE INDEX documents_id_lower ON documents(lower(id));
@@ -43,6 +45,9 @@ END;
 
 
 def records(path):
+    if not isinstance(path,(str,Path,list,tuple)):
+        yield from path
+        return
     if isinstance(path, (list, tuple)):
         for item in path:
             yield from records(item)
@@ -74,8 +79,10 @@ def build(documents, places, output, cities=None):
     try:
         with sqlite3.connect(temp) as con:
             con.executescript(SCHEMA)
+            fixtures=0
             for item in records(documents):
                 validate_common(item)
+                fixtures += int("TEST ONLY" in item["license"])
                 if not item.get("title") or not item.get("body"):
                     raise ValueError(f"{item['id']}: missing title or body")
                 con.execute("INSERT INTO documents VALUES (?,?,?,?,?,?)", tuple(item[k] for k in
@@ -85,6 +92,7 @@ def build(documents, places, output, cities=None):
                      for ordinal, text in enumerate(passages(item["body"]))))
             for item in records(places):
                 validate_common(item)
+                fixtures += int("TEST ONLY" in item["license"])
                 for key in ("name", "city", "country"):
                     if not item.get(key):
                         raise ValueError(f"{item['id']}: missing {key}")
@@ -109,6 +117,13 @@ def build(documents, places, output, cities=None):
                                 fields[1],fields[2],fields[8],float(fields[4]),float(fields[5]),int(fields[14])))
                         except ValueError:
                             continue
+            metadata={"schema":"5","fixture_count":str(fixtures),
+                "articles":str(con.execute('SELECT count(*) FROM documents').fetchone()[0]),
+                "passages":str(con.execute('SELECT count(*) FROM passages').fetchone()[0]),
+                "places":str(con.execute('SELECT count(*) FROM places').fetchone()[0]),
+                "first_snapshot":con.execute('SELECT min(source_date) FROM documents').fetchone()[0] or "",
+                "last_snapshot":con.execute('SELECT max(source_date) FROM documents').fetchone()[0] or ""}
+            con.executemany('INSERT INTO pack_metadata VALUES (?,?)',metadata.items())
             con.execute("PRAGMA user_version=5")
             con.execute("INSERT INTO doc_search(doc_search) VALUES('optimize')")
             con.execute("INSERT INTO place_search(place_search) VALUES('optimize')")

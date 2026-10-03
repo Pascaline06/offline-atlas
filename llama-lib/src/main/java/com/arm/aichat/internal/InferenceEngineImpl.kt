@@ -227,7 +227,7 @@ internal class InferenceEngineImpl private constructor(
 
     override fun requestStop() {
         _cancelGeneration = true
-        signalStop(true)
+        if (_state.value !is InferenceEngine.State.Uninitialized && _state.value !is InferenceEngine.State.Initializing) signalStop(true)
     }
 
     override fun sendUserPrompt(

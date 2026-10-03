@@ -71,7 +71,17 @@ final class AtlasRepository implements AutoCloseable {
             try (Cursor c=db.rawQuery("PRAGMA quick_check",null)) {
                 if (!c.moveToFirst() || !"ok".equals(c.getString(0))) throw new IllegalStateException("Index is corrupt");
             }
-            try (Cursor c=db.rawQuery("SELECT COUNT(*) FROM documents",null)) { c.moveToFirst(); }
+            try (Cursor c=db.rawQuery("SELECT id,title,body,source,source_date,license FROM documents LIMIT 0",null)) { }
+            try (Cursor c=db.rawQuery("SELECT id,name,city,country,lat,lon,diet_vegan,diet_vegetarian,cuisine,address,source,source_date,license FROM places LIMIT 0",null)) { }
+            try (Cursor c=db.rawQuery("SELECT title,body FROM doc_search LIMIT 0",null)) { }
+            try (Cursor version=db.rawQuery("PRAGMA user_version",null)) {
+                version.moveToFirst();
+                if(version.getInt(0)>=4) try(Cursor c=db.rawQuery("SELECT name,ascii_name,country,lat,lon,population FROM cities LIMIT 0",null)) { }
+                if(version.getInt(0)>=5) {
+                    try(Cursor c=db.rawQuery("SELECT document_id,ordinal,title,text FROM passages LIMIT 0",null)) { }
+                    try(Cursor c=db.rawQuery("SELECT title,text FROM passage_search LIMIT 0",null)) { }
+                }
+            }
             // Older installed packs lack this index. Build it in place once so
             // lower(id) lookups do not scan the full article database on phones.
             boolean indexed=false;
@@ -148,7 +158,8 @@ final class AtlasRepository implements AutoCloseable {
             byte[] buffer=new byte[65536]; int count;
             while ((count=input.read(buffer))!=-1) {
                 size+=count;
-                if (size>maximum) throw new IllegalArgumentException("Index exceeds storage budget");
+                if (size>maximum) throw new IllegalArgumentException("Index exceeds storage budget including the previous installed assets");
+                if(size % (64L*1024*1024)<65536 && target.getParentFile().getUsableSpace()<AssetBudget.FREE_RESERVE) throw new IllegalArgumentException("Insufficient free storage; previous pack preserved");
                 output.write(buffer,0,count);
             }
             output.getFD().sync();
@@ -157,6 +168,9 @@ final class AtlasRepository implements AutoCloseable {
 
     boolean containsTestData() {
         if(testData!=null) return testData;
+        try(Cursor meta=database.rawQuery("SELECT value FROM pack_metadata WHERE key=\"fixture_count\"",null)) {
+            if(meta.moveToFirst()) {testData=meta.getInt(0)>0;return testData;}
+        } catch(SQLiteException legacy) { }
         try (Cursor c=database.rawQuery("SELECT 1 FROM documents WHERE license LIKE '%TEST ONLY%' UNION SELECT 1 FROM places WHERE license LIKE '%TEST ONLY%' LIMIT 1",null)) {
             testData=c.moveToFirst();return testData;
         }

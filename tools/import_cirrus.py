@@ -2,6 +2,7 @@
 """Stream a Wikimedia CirrusSearch content shard into licensed article JSONL."""
 import argparse
 import bz2
+import gzip
 import html
 import json
 import re
@@ -16,7 +17,7 @@ def convert(source, output, project, snapshot, max_chars=250000):
     if not 1000 <= max_chars <= 1000000:
         raise ValueError('max_chars must be between 1000 and 1000000')
     count = 0
-    opener = bz2.open if str(source).endswith('.bz2') else open
+    opener = bz2.open if str(source).endswith('.bz2') else gzip.open if str(source).endswith('.gz') else open
     with opener(source, 'rt', encoding='utf-8', errors='replace') as stream, Path(output).open('w', encoding='utf-8') as target:
         for line in stream:
             try:
@@ -29,7 +30,7 @@ def convert(source, output, project, snapshot, max_chars=250000):
                 continue
             if item.get('namespace', 0) not in (0, '0'):
                 continue
-            body = html.unescape(re.sub(r'<[^>]+>', ' ', body))
+            body = html.unescape(body)
             body = re.sub(r'\s+', ' ', body).strip()
             body = body[:max_chars]
             if len(body) < 80:
