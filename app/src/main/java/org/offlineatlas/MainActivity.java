@@ -61,7 +61,7 @@ public final class MainActivity extends Activity {
         LinearLayout root=new LinearLayout(this); root.setOrientation(LinearLayout.VERTICAL); root.setPadding(22,24,22,12); root.setBackgroundColor(0xfffafbf7);
         TextView heading=label("Offline Atlas",26); root.addView(heading);
         dataStatus=label("Offline only · checking local search index",14); root.addView(dataStatus);
-        input=new EditText(this); input.setFilters(new InputFilter[]{new InputFilter.LengthFilter(2000)}); input.setSingleLine(false); input.setMinLines(2); input.setHint("Ask a question or search vegan restaurants in a city"); input.setImeOptions(EditorInfo.IME_ACTION_SEARCH); root.addView(input);
+        input=new EditText(this); input.setFilters(new InputFilter[]{new InputFilter.LengthFilter(2000)}); input.setSingleLine(false); input.setMinLines(2); input.setHint("Ask a research question, comparison, or explanation"); input.setImeOptions(EditorInfo.IME_ACTION_SEARCH); root.addView(input);
         LinearLayout actions=new LinearLayout(this); actions.setOrientation(LinearLayout.HORIZONTAL); root.addView(actions);
         search=new Button(this); search.setText("Search offline"); search.setEnabled(false); actions.addView(search,new LinearLayout.LayoutParams(0,-2,1));
         stop=new Button(this); stop.setText("Stop answer"); stop.setEnabled(false); stop.setVisibility(View.GONE); actions.addView(stop);
@@ -90,7 +90,7 @@ public final class MainActivity extends Activity {
         worker.execute(() -> { try {
             new File(getFilesDir(),"incoming-atlas.db").delete();
             new File(getFilesDir(),"incoming-model.gguf").delete();
-            repository=new AtlasRepository(this); boolean fixture=repository.containsTestData(); ui(() -> { dataStatus.setText(fixture ? "Offline · fictional test data — install real pack" : "Offline · imported local evidence"); output.addView(label(fixture ? "Index ready. Install a real data pack before using travel results." : "Local knowledge pack ready.",16)); });
+            repository=new AtlasRepository(this); boolean fixture=repository.containsTestData(); ui(() -> { dataStatus.setText(fixture ? "Offline · fictional test data — install real pack" : "Offline · imported local evidence"); output.addView(label(fixture ? "Starter data is fictional. Open Assets and settings to install the knowledge pack and supported model." : "Local knowledge pack ready.",16)); });
             File saved=new File(getFilesDir(),"offline-model.gguf");
             AssetSwap.recover(saved);
             if (saved.isFile()) {
